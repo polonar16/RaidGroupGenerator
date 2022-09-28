@@ -94,13 +94,18 @@ namespace RaidCompGenerator
             Worksheet worksheet = workbook.GetWorksheet("Output Values");
             CellCollection worksheetCells = worksheet.Cells;
 
-            int rowIndex = 11, colIndex = 0;
-            int playerColIndex = colIndex;
-            while (!worksheetCells[rowIndex, colIndex].IsEmpty)
+            //try
             {
-                string player = worksheetCells[rowIndex, colIndex++].StringValue;
-                do
+                int rowIndex = 11, colIndex = 0;
+                int playerColIndex = colIndex;
+                while (!worksheetCells[rowIndex, 0].IsEmpty)
                 {
+                    String player = worksheetCells[rowIndex, colIndex++].StringValue;
+                    if (String.IsNullOrEmpty(player))
+                    {
+                        break;
+                    }
+
                     PlayerCharacter playerCharacter = new PlayerCharacter();
                     playerCharacter.index = raidGroupGenerator.GetPlayerCharacterCount();
                     playerCharacter.player = player;
@@ -121,12 +126,14 @@ namespace RaidCompGenerator
                     }
                     raidGroupGenerator.AddPlayerCharacter(playerCharacter);
 
-                    colIndex = 0;
                     rowIndex++;
-                } while (worksheetCells[rowIndex, playerColIndex].IsEmpty && !worksheetCells[rowIndex, colIndex].IsEmpty);
-
-                colIndex = playerColIndex;
+                    colIndex = playerColIndex;
+                }
             }
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message);
+            //}
         }
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
