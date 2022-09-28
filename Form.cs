@@ -59,11 +59,11 @@ namespace RaidCompGenerator
 
         private void ImportDesiredRaidComposition(Workbook workbook)
         {
-            Worksheet worksheet = workbook.GetWorksheet("Setup");
+            Worksheet worksheet = workbook.GetWorksheet("Output Values");
             CellCollection worksheetCells = worksheet.Cells;
 
             int partyMemberIndex = 0, groupIndex = 0;
-            int rowIndex = 1, colIndex = 0;
+            int rowIndex = 3, colIndex = 0;
             while (!worksheetCells[rowIndex, colIndex].IsEmpty)
             {
                 while (!worksheetCells[rowIndex, colIndex].IsEmpty)
@@ -82,7 +82,7 @@ namespace RaidCompGenerator
                 partyMemberIndex = 0;
                 groupIndex++;
 
-                rowIndex = 1;
+                rowIndex = 3;
                 colIndex++;
             }
         }
@@ -91,10 +91,10 @@ namespace RaidCompGenerator
         {
             raidGroupGenerator.ClearPlayerCharacters();
 
-            Worksheet worksheet = workbook.GetWorksheet("Roster");
+            Worksheet worksheet = workbook.GetWorksheet("Output Values");
             CellCollection worksheetCells = worksheet.Cells;
 
-            int rowIndex = 1, colIndex = 0;
+            int rowIndex = 11, colIndex = 0;
             int playerColIndex = colIndex;
             while (!worksheetCells[rowIndex, colIndex].IsEmpty)
             {
@@ -110,9 +110,14 @@ namespace RaidCompGenerator
                     playerCharacter.classSpecKey = String.Format("{0} {1}", playerCharacter.specialisation, playerCharacter.characterClass);
                     playerCharacter.priority = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
                     playerCharacter.absent = Convert.ToBoolean(worksheetCells[rowIndex, colIndex++].Value);
+
                     if (!worksheetCells[rowIndex, colIndex].IsEmpty)
                     {
-                        playerCharacter.raid = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value) - 1;
+                        int raidIndex = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
+                        if (raidIndex > 0)
+                        {
+                            playerCharacter.raid = -1;
+                        }
                     }
                     raidGroupGenerator.AddPlayerCharacter(playerCharacter);
 
