@@ -251,6 +251,12 @@ namespace RaidCompGenerator
             }
 
             PlayerCharacter thatPlayerCharacter = that as PlayerCharacter;
+            if (raid != -1 || thatPlayerCharacter.raid != -1)
+            {
+                bool isGreaterPriority = raid > thatPlayerCharacter.raid;
+                return isGreaterPriority ? -1 : 1;
+            }
+
             if (priority != thatPlayerCharacter.priority)
             {
                 bool isGreaterPriority = priority < thatPlayerCharacter.priority;
@@ -443,6 +449,11 @@ namespace RaidCompGenerator
 
                 for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)
                 {
+                    if (playerCharacter.raid > 0 && raidIndex != playerCharacter.raid)
+                    {
+                        continue;
+                    }
+
                     int groupIndex = 0, partyMemberIndex = 0;
                     bool exactMatch = false;
 

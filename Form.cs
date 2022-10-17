@@ -121,7 +121,7 @@ namespace RaidCompGenerator
                         int raidIndex = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
                         if (raidIndex > 0)
                         {
-                            playerCharacter.raid = -1;
+                            playerCharacter.raid = raidIndex - 1;
                         }
                     }
                     raidGroupGenerator.AddPlayerCharacter(playerCharacter);
