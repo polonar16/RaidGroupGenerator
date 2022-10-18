@@ -131,7 +131,18 @@ namespace RaidCompGenerator
         public static Color GetSpecColour(string specialisation)
         {
             int specIndex = getIndexOfString(Specialisations, specialisation);
-            return ClassColors[specIndex / 3];
+            if (specIndex < 0)
+            {
+                return Color.LightGray;
+            }
+
+            int classIndex = specIndex / 3;
+            if (classIndex < ClassColors.Count)
+            {
+                return ClassColors[classIndex];
+            }
+
+            return Color.LightGray;
         }
 
         public static int GetGearTypeIndex(string specialisation)
@@ -205,6 +216,7 @@ namespace RaidCompGenerator
                 case "Beast Mastery Hunter":
                 case "Marksmanship Hunter":
                 case "Survival Hunter":
+                    return getIndexOfString(Roles, "PhysicalMelee");
                     return getIndexOfString(Roles, "PhysicalRanged");
 
                 case "Mage":
@@ -229,6 +241,27 @@ namespace RaidCompGenerator
             }
 
             return -1;
+        }
+
+        internal static bool MatchClassSpecToRole(string desiredRole, string classSpecKey)
+        {
+            int roleIndex = GetRoleIndex(classSpecKey);
+            if (String.Compare(desiredRole, "Any Tank") == 0)
+            {
+                return roleIndex == getIndexOfString(Roles, "Tank");
+            }
+            else if (String.Compare(desiredRole, "Any DPS") == 0)
+            {
+                return roleIndex == getIndexOfString(Roles, "PhysicalMelee")
+                    || roleIndex == getIndexOfString(Roles, "PhysicalRanged")
+                    || roleIndex == getIndexOfString(Roles, "Caster");
+            }
+            else if (String.Compare(desiredRole, "Any healer") == 0)
+            {
+                return roleIndex == getIndexOfString(Roles, "Healer");
+            }
+
+            return false;
         }
     }
 
@@ -333,12 +366,13 @@ namespace RaidCompGenerator
             return null;
         }
 
-        public bool FindEmptyPositionForClassSpec(string classSpecKey, RaidComposition desiredRaidComposition, out int out_groupIndex, out int out_partyMemberIndex, out bool out_exactMatch)
+        public bool FindEmptyPositionForClassSpec(string classSpecKey, RaidComposition desiredRaidComposition, out int out_groupIndex, out int out_partyMemberIndex, out float out_matchWeight)
         {
             out_groupIndex = -1;
             out_partyMemberIndex = -1;
-            out_exactMatch = false;
+            out_matchWeight = 10000;
 
+            // Try to match exact class/spec.
             for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
             {
                 for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
@@ -348,12 +382,13 @@ namespace RaidCompGenerator
                     {
                         out_groupIndex = groupIndex;
                         out_partyMemberIndex = partyMemberIndex;
-                        out_exactMatch = true;
+                        out_matchWeight = 0;
                         return true;
                     }
                 }
             }
 
+            // Try to match class.
             for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
             {
                 for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
@@ -363,6 +398,23 @@ namespace RaidCompGenerator
                     {
                         out_groupIndex = groupIndex;
                         out_partyMemberIndex = partyMemberIndex;
+                        out_matchWeight = 75;
+                        return true;
+                    }
+                }
+            }
+
+            // Try to match role (dps, tank, healer)
+            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+            {
+                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                {
+                    string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
+                    if (Helper.MatchClassSpecToRole(desiredSpecialisation, classSpecKey) && characters[groupIndex, partyMemberIndex] == null)
+                    {
+                        out_groupIndex = groupIndex;
+                        out_partyMemberIndex = partyMemberIndex;
+                        out_matchWeight = 150;
                         return true;
                     }
                 }
@@ -371,18 +423,18 @@ namespace RaidCompGenerator
             return false;
         }
 
-        public bool FindEmptyPositionForCharacter(PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, out int out_groupIndex, out int out_partyMemberIndex, out bool out_exactMatch)
+        public bool FindEmptyPositionForCharacter(PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, out int out_groupIndex, out int out_partyMemberIndex, out float out_matchWeight)
         {
             out_groupIndex = -1;
             out_partyMemberIndex = -1;
-            out_exactMatch = false;
+            out_matchWeight = 0;
 
             if (ContainsPlayer(playerCharacter.player))
             {
                 return false;
             }
 
-            return FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, out out_groupIndex, out out_partyMemberIndex, out out_exactMatch);
+            return FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, out out_groupIndex, out out_partyMemberIndex, out out_matchWeight);
         }
 
         public void SetPlayerCharacter(int groupIndex, int partyMemberIndex, PlayerCharacter playerCharacter)
@@ -480,9 +532,9 @@ namespace RaidCompGenerator
         {
             foreach (RaidGroup raidGroup in raidGroups)
             {
-                bool out_exactMatch;
+                float out_matchWeight;
                 int out_groupIndex, out_partyMemberIndex;
-                if (raidGroup.FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, out out_groupIndex, out out_partyMemberIndex, out out_exactMatch))
+                if (raidGroup.FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, out out_groupIndex, out out_partyMemberIndex, out out_matchWeight))
                 {
                     return true;
                 }
@@ -518,23 +570,22 @@ namespace RaidCompGenerator
                     continue;
                 }
 
-                bool exactMatch = false;
 
                 RaidGroup raidGroup = raidGroups[raidIndex];
 
                 PlayerRaidGroupWeight playerRaidGroupWeight = new PlayerRaidGroupWeight();
                 playerRaidGroupWeight.raidIndex = raidIndex;
 
-                if (!raidGroup.FindEmptyPositionForCharacter(playerCharacter, desiredRaidComposition, out playerRaidGroupWeight.groupIndex, out playerRaidGroupWeight.partyMemberIndex, out exactMatch))
+                float matchWeight = 100;
+                if (!raidGroup.FindEmptyPositionForCharacter(playerCharacter, desiredRaidComposition, out playerRaidGroupWeight.groupIndex, out playerRaidGroupWeight.partyMemberIndex, out matchWeight))
                 {
                     continue;
                 }
 
                 float raidMatchWeight = playerCharacter.raid != raidIndex ? 1000 : 0;
-                float exactMatchWeight = exactMatch ? 0 : 100;
                 float roleWeight = raidGroup.roleCounts[roleIndex] * 10;
                 float gearTypeWeight = raidGroup.gearTypeCounts[gearTypeIndex];
-                playerRaidGroupWeight.weight = raidMatchWeight + exactMatchWeight + roleWeight + gearTypeWeight;
+                playerRaidGroupWeight.weight = raidMatchWeight + matchWeight + roleWeight + gearTypeWeight;
                 playerCharacterRaidGroupWeights.Add(playerRaidGroupWeight);
 
                 if (playerRaidGroupWeight.weight < bestRaidGroupWeight)
@@ -586,23 +637,11 @@ namespace RaidCompGenerator
                 return false;
             }
 
-            /*
-            // If they do, find the raid they were placed in and grab that weight.
-            float bestRaidWeight = 0;
-            foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerRaidGroupWeights)
-            {
-                if (playerRaidGroupWeight.raidIndex == raidIndexContainingPlayer)
-                {
-                    bestRaidWeight = playerRaidGroupWeight.weight;
-                }
-            }
-            */
-
             // Find any other raids that have a matching weight.
             for (int raidGroupWeightIndex = 0; raidGroupWeightIndex < playerRaidGroupWeights.Count; raidGroupWeightIndex++)
             {
                 PlayerRaidGroupWeight playerRaidGroupWeight = playerRaidGroupWeights[raidGroupWeightIndex];
-                if (playerRaidGroupWeight.raidIndex != raidIndexContainingPlayer/* && playerRaidGroupWeight.weight == bestRaidWeight*/)
+                if (playerRaidGroupWeight.raidIndex != raidIndexContainingPlayer)
                 {
                     // First, make sure this character isn't absent for this raid.
                     if (existingPlayerCharacter.absentRaids.Contains(playerRaidGroupWeight.raidIndex))
@@ -618,9 +657,9 @@ namespace RaidCompGenerator
                     }
 
                     // Check whether there is room in this raid for this character.
-                    bool exactMatch = false;
+                    float matchWeight = 100;
                     int groupIndex = 0, partyMemberIndex = 0;
-                    if (raidGroup.FindEmptyPositionForClassSpec(existingPlayerCharacter.classSpecKey, desiredRaidComposition, out groupIndex, out partyMemberIndex, out exactMatch))
+                    if (raidGroup.FindEmptyPositionForClassSpec(existingPlayerCharacter.classSpecKey, desiredRaidComposition, out groupIndex, out partyMemberIndex, out matchWeight))
                     {
                         raidGroups[raidIndexContainingPlayer].RemovePlayerCharacter(existingPlayerCharacter);
 
