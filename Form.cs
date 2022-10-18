@@ -12,7 +12,6 @@ using ExcelLibrary.SpreadSheet;
 
 namespace RaidCompGenerator
 {
-
     public partial class Form : System.Windows.Forms.Form
     {
         RaidComposition desiredRaidComposition;
@@ -115,13 +114,12 @@ namespace RaidCompGenerator
                     playerCharacter.classSpecKey = String.Format("{0} {1}", playerCharacter.specialisation, playerCharacter.characterClass);
                     playerCharacter.priority = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
 
-                    String[] absentRaidStrings = worksheetCells[rowIndex, colIndex++].StringValue.Split(',');
-                    foreach (String absentRaidString in absentRaidStrings)
+                    for (int absentRaidIndex = 0; absentRaidIndex < int.Parse(textBoxRaidGroupCount.Text); absentRaidIndex++)
                     {
-                        int absentRaidIndex = Convert.ToInt32(absentRaidString);
-                        if (absentRaidIndex > 0)
+                        bool absent = Convert.ToBoolean(worksheetCells[rowIndex, colIndex++].Value);
+                        if (absent)
                         {
-                            playerCharacter.absentRaids.Add(absentRaidIndex - 1);
+                            playerCharacter.absentRaids.Add(absentRaidIndex);
                         }
                     }
 
