@@ -317,23 +317,34 @@ namespace RaidCompGenerator
             return false;
         }
 
-        public bool FindEmptyPositionForCharacter(RaidComposition desiredComposition, PlayerCharacter playerCharacter, out int out_groupIndex, out int out_partyMemberIndex, out bool out_exactMatch)
+        public PlayerCharacter GetCharacterForPlayer(string player)
+        {
+            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+            {
+                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                {
+                    PlayerCharacter playerCharacter = characters[groupIndex, partyMemberIndex];
+                    if (playerCharacter != null && playerCharacter.player == player)
+                    {
+                        return playerCharacter;
+                    }
+                }
+            }
+            return null;
+        }
+
+        public bool FindEmptyPositionForClassSpec(string classSpecKey, RaidComposition desiredRaidComposition, out int out_groupIndex, out int out_partyMemberIndex, out bool out_exactMatch)
         {
             out_groupIndex = -1;
             out_partyMemberIndex = -1;
             out_exactMatch = false;
 
-            if (ContainsPlayer(playerCharacter.player))
-            {
-                return false;
-            }
-
             for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
             {
                 for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
                 {
-                    string desiredSpecialisation = desiredComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
-                    if ((playerCharacter.character == desiredSpecialisation || playerCharacter.classSpecKey == desiredSpecialisation) && characters[groupIndex, partyMemberIndex] == null)
+                    string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
+                    if (classSpecKey == desiredSpecialisation && characters[groupIndex, partyMemberIndex] == null)
                     {
                         out_groupIndex = groupIndex;
                         out_partyMemberIndex = partyMemberIndex;
@@ -347,8 +358,8 @@ namespace RaidCompGenerator
             {
                 for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
                 {
-                    string desiredSpecialisation = desiredComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
-                    if (playerCharacter.classSpecKey.Contains(desiredSpecialisation) && characters[groupIndex, partyMemberIndex] == null)
+                    string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
+                    if (classSpecKey.Contains(desiredSpecialisation) && characters[groupIndex, partyMemberIndex] == null)
                     {
                         out_groupIndex = groupIndex;
                         out_partyMemberIndex = partyMemberIndex;
@@ -358,6 +369,20 @@ namespace RaidCompGenerator
             }
 
             return false;
+        }
+
+        public bool FindEmptyPositionForCharacter(PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, out int out_groupIndex, out int out_partyMemberIndex, out bool out_exactMatch)
+        {
+            out_groupIndex = -1;
+            out_partyMemberIndex = -1;
+            out_exactMatch = false;
+
+            if (ContainsPlayer(playerCharacter.player))
+            {
+                return false;
+            }
+
+            return FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, out out_groupIndex, out out_partyMemberIndex, out out_exactMatch);
         }
 
         public void SetPlayerCharacter(int groupIndex, int partyMemberIndex, PlayerCharacter playerCharacter)
@@ -387,8 +412,22 @@ namespace RaidCompGenerator
                 }
             }
         }
-    };
 
+        internal void RemovePlayerCharacter(PlayerCharacter existingPlayerCharacter)
+        {
+            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+            {
+                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                {
+                    PlayerCharacter playerCharacter = characters[groupIndex, partyMemberIndex];
+                    if (playerCharacter != null && playerCharacter == existingPlayerCharacter)
+                    {
+                        characters[groupIndex, partyMemberIndex] = null;
+                    }
+                }
+            }
+        }
+    }
     public class RaidGroupGenerator
     {
         public List<RaidGroup> raidGroups;
@@ -424,7 +463,40 @@ namespace RaidCompGenerator
             public float weight;
         }
 
-        public bool AttemptToDistributePlayerCharacter(PlayerCharacter playerCharacter, int raidGroupCount, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playerRaidGroupWeights, Random random)
+        public bool GetRaidGroupContainingPlayer(string player, out int out_raidIndex, out PlayerCharacter out_foundPlayerCharacter)
+        {
+            out_raidIndex = -1;
+            out_foundPlayerCharacter = null;
+
+            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            {
+                RaidGroup raidGroup = raidGroups[raidIndex];
+                if (raidGroup.ContainsPlayer(player))
+                {
+                    out_raidIndex = raidIndex;
+                    out_foundPlayerCharacter = raidGroup.GetCharacterForPlayer(player);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool AnyRaidHasRoomForClassSpec(PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition)
+        {
+            foreach (RaidGroup raidGroup in raidGroups)
+            {
+                bool out_exactMatch;
+                int out_groupIndex, out_partyMemberIndex;
+                if (raidGroup.FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, out out_groupIndex, out out_partyMemberIndex, out out_exactMatch))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool AttemptToDistributePlayerCharacter(PlayerCharacter playerCharacter, int raidGroupCount, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights, Random random)
         {
             int roleIndex = Helper.GetRoleIndex(playerCharacter.classSpecKey);
             if (roleIndex == -1)
@@ -459,7 +531,7 @@ namespace RaidCompGenerator
                 PlayerRaidGroupWeight playerRaidGroupWeight = new PlayerRaidGroupWeight();
                 playerRaidGroupWeight.raidIndex = raidIndex;
 
-                if (!raidGroup.FindEmptyPositionForCharacter(desiredRaidComposition, playerCharacter, out playerRaidGroupWeight.groupIndex, out playerRaidGroupWeight.partyMemberIndex, out exactMatch))
+                if (!raidGroup.FindEmptyPositionForCharacter(playerCharacter, desiredRaidComposition, out playerRaidGroupWeight.groupIndex, out playerRaidGroupWeight.partyMemberIndex, out exactMatch))
                 {
                     continue;
                 }
@@ -495,9 +567,75 @@ namespace RaidCompGenerator
                 RaidGroup raidGroup = raidGroups[playerRaidGroupWeight.raidIndex];
                 raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
 
-                playerRaidGroupWeights.Add(playerCharacter, playerCharacterRaidGroupWeights);
+                playersRaidGroupWeights.Add(playerCharacter, playerCharacterRaidGroupWeights);
 
                 return true;
+            }
+
+            return false;
+        }
+
+        private bool AttemptToRedistributePlayer(PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights)
+        {
+            // First, check whether this player already has a character in any raid.
+            int raidIndexContainingPlayer;
+            PlayerCharacter existingPlayerCharacter;
+            if (!GetRaidGroupContainingPlayer(playerCharacter.player, out raidIndexContainingPlayer, out existingPlayerCharacter))
+            {
+                return false;
+            }
+
+            // Secondly, check whether this character successfully weighted any raids.
+            List<PlayerRaidGroupWeight> playerRaidGroupWeights;
+            if (!playersRaidGroupWeights.TryGetValue(existingPlayerCharacter, out playerRaidGroupWeights))
+            {
+                return false;
+            }
+
+            /*
+            // If they do, find the raid they were placed in and grab that weight.
+            float bestRaidWeight = 0;
+            foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerRaidGroupWeights)
+            {
+                if (playerRaidGroupWeight.raidIndex == raidIndexContainingPlayer)
+                {
+                    bestRaidWeight = playerRaidGroupWeight.weight;
+                }
+            }
+            */
+
+            // Find any other raids that have a matching weight.
+            for (int raidGroupWeightIndex = 0; raidGroupWeightIndex < playerRaidGroupWeights.Count; raidGroupWeightIndex++)
+            {
+                PlayerRaidGroupWeight playerRaidGroupWeight = playerRaidGroupWeights[raidGroupWeightIndex];
+                if (playerRaidGroupWeight.raidIndex != raidIndexContainingPlayer/* && playerRaidGroupWeight.weight == bestRaidWeight*/)
+                {
+                    // First, make sure this character isn't absent for this raid.
+                    if (existingPlayerCharacter.absentRaids.Contains(playerRaidGroupWeight.raidIndex))
+                    {
+                        continue;
+                    }    
+
+                    // Second, make sure this player does not have yet another character already in this raid.
+                    RaidGroup raidGroup = raidGroups[playerRaidGroupWeight.raidIndex];
+                    if (raidGroup.ContainsPlayer(existingPlayerCharacter.player))
+                    {
+                        continue;
+                    }
+
+                    // Check whether there is room in this raid for this character.
+                    bool exactMatch = false;
+                    int groupIndex = 0, partyMemberIndex = 0;
+                    if (raidGroup.FindEmptyPositionForClassSpec(existingPlayerCharacter.classSpecKey, desiredRaidComposition, out groupIndex, out partyMemberIndex, out exactMatch))
+                    {
+                        raidGroups[raidIndexContainingPlayer].RemovePlayerCharacter(existingPlayerCharacter);
+
+                        raidGroup.SetPlayerCharacter(groupIndex, partyMemberIndex, existingPlayerCharacter);
+                        playerRaidGroupWeight.groupIndex = groupIndex;
+                        playerRaidGroupWeight.partyMemberIndex = partyMemberIndex;
+                        return true;
+                    }
+                }
             }
 
             return false;
@@ -519,10 +657,18 @@ namespace RaidCompGenerator
 
 
             // Generate the raids.
-            Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playerRaidGroupWeights = new Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>>();
+            Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights = new Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>>();
             foreach (PlayerCharacter playerCharacter in playerCharacters)
             {
-                AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, playerRaidGroupWeights, random);
+                if (!AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, playersRaidGroupWeights, random))
+                {
+                    // If we failed to distribute this character, check whether there actually is an empty spot they can fill that we could potentially move another character into to make space for this one.
+                    if (AnyRaidHasRoomForClassSpec(playerCharacter, desiredRaidComposition) && AttemptToRedistributePlayer(playerCharacter, desiredRaidComposition, playersRaidGroupWeights))
+                    {
+                        // Try once more now that we succesfully moved one of this player's characters to a different raid group.
+                        AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, playersRaidGroupWeights, random);
+                    }
+                }
             }
         }
     }
