@@ -240,7 +240,7 @@ namespace RaidCompGenerator
         public string characterClass;
         public string specialisation;
         public string classSpecKey;
-        public bool absent = false;
+        public List<int> absentRaids = new List<int>();
         public int priority = 10;
         public int raid = -1;
         public int CompareTo(object that)
@@ -434,12 +434,19 @@ namespace RaidCompGenerator
 
             int gearTypeIndex = Helper.GetGearTypeIndex(playerCharacter.classSpecKey);
 
-            // First, calculate weights for each raid group and which ones are the best fit.
             float bestRaidGroupWeight = 10000;
 
+            // First, calculate weights for each raid group and which ones are the best fit.
             List<PlayerRaidGroupWeight> playerCharacterRaidGroupWeights = new List<PlayerRaidGroupWeight>();
             for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)
             {
+                // Check if the character is absent for this raid.
+                if (playerCharacter.absentRaids.Contains(raidIndex))
+                {
+                    continue;
+                }
+
+                // Check whether the character is fixed to this raid.
                 if (playerCharacter.raid > 0 && raidIndex != playerCharacter.raid)
                 {
                     continue;
@@ -480,6 +487,7 @@ namespace RaidCompGenerator
                 }
             }
 
+            // Lastly, randomly pick from one of the suitable raid groups to assign this player.
             if (suitableRaidGroups.Count > 0)
             {
                 int weightIndex = random.Next(suitableRaidGroups.Count);
@@ -514,11 +522,6 @@ namespace RaidCompGenerator
             Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playerRaidGroupWeights = new Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>>();
             foreach (PlayerCharacter playerCharacter in playerCharacters)
             {
-                if (playerCharacter.absent)
-                {
-                    continue;
-                }
-
                 AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, playerRaidGroupWeights, random);
             }
         }

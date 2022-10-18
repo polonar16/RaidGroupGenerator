@@ -114,7 +114,16 @@ namespace RaidCompGenerator
                     playerCharacter.specialisation = worksheetCells[rowIndex, colIndex++].StringValue;
                     playerCharacter.classSpecKey = String.Format("{0} {1}", playerCharacter.specialisation, playerCharacter.characterClass);
                     playerCharacter.priority = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
-                    playerCharacter.absent = Convert.ToBoolean(worksheetCells[rowIndex, colIndex++].Value);
+
+                    String[] absentRaidStrings = worksheetCells[rowIndex, colIndex++].StringValue.Split(',');
+                    foreach (String absentRaidString in absentRaidStrings)
+                    {
+                        int absentRaidIndex = Convert.ToInt32(absentRaidString);
+                        if (absentRaidIndex > 0)
+                        {
+                            playerCharacter.absentRaids.Add(absentRaidIndex - 1);
+                        }
+                    }
 
                     if (!worksheetCells[rowIndex, colIndex].IsEmpty)
                     {
