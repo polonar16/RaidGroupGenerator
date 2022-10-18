@@ -23,6 +23,11 @@ namespace RaidCompGenerator
 
             desiredRaidComposition = new RaidComposition();
             raidGroupGenerator = new RaidGroupGenerator();
+
+#if !DEBUG
+            buttonRegenerate.Enabled = false;
+            buttonRegenerate.Visible = false;
+#endif
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -201,11 +206,11 @@ namespace RaidCompGenerator
             workbook.Save(saveFileDialog.FileName);
         }
 
-        private void buttonGenerate_Click(object sender, EventArgs e)
+        private void ExecuteGenerate(bool generateRandomSeed)
         {
             try
             {
-                raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition);
+                raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, generateRandomSeed);
 
                 comboBoxRaidGroups.Items.Clear();
                 for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroups.Count; raidGroupIndex++)
@@ -222,6 +227,17 @@ namespace RaidCompGenerator
             {
                 MessageBox.Show(ex.Message);
             }
+        }
+
+
+        private void buttonGenerate_Click(object sender, EventArgs e)
+        {
+            ExecuteGenerate(true);
+        }
+
+        private void buttonRegenerate_Click(object sender, EventArgs e)
+        {
+            ExecuteGenerate(false);
         }
 
         private void comboBoxRaidGroups_SelectedValueChanged(object sender, EventArgs e)

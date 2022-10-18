@@ -430,15 +430,9 @@ namespace RaidCompGenerator
     }
     public class RaidGroupGenerator
     {
-        public List<RaidGroup> raidGroups;
-        private List<PlayerCharacter> playerCharacters;
-
-        public RaidGroupGenerator()
-        {
-            playerCharacters = new List<PlayerCharacter>();
-
-            raidGroups = new List<RaidGroup>();
-        }
+        public List<RaidGroup> raidGroups = new List<RaidGroup>();
+        private List<PlayerCharacter> playerCharacters = new List<PlayerCharacter>();
+        private int m_randomSeed = 0;
 
         public void ClearPlayerCharacters()
         {
@@ -641,10 +635,14 @@ namespace RaidCompGenerator
             return false;
         }
 
-        public void GenerateRaidGroups(int raidGroupCount, RaidComposition desiredRaidComposition)
+        public void GenerateRaidGroups(int raidGroupCount, RaidComposition desiredRaidComposition, bool generateRandomSeed)
         {
-            TimeSpan span = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-            Random random = new Random((int)span.TotalSeconds);
+            if (m_randomSeed == 0 || generateRandomSeed)
+            {
+                TimeSpan span = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+                m_randomSeed = (int)span.TotalSeconds;
+            }
+            Random random = new Random(m_randomSeed);
 
             raidGroups.Clear();
             for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)

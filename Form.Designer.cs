@@ -35,22 +35,23 @@
             this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.raidCompDataGridView = new System.Windows.Forms.DataGridView();
-            this.labelRaidComp = new System.Windows.Forms.Label();
-            this.raidDataGridView = new System.Windows.Forms.DataGridView();
-            this.comboBoxRaidGroups = new System.Windows.Forms.ComboBox();
-            this.textBoxRaidGroupCount = new System.Windows.Forms.TextBox();
-            this.labelRaidGroups = new System.Windows.Forms.Label();
-            this.buttonGenerate = new System.Windows.Forms.Button();
             this.Group1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Group2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Group3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Group4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Group5 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.labelRaidComp = new System.Windows.Forms.Label();
+            this.raidDataGridView = new System.Windows.Forms.DataGridView();
             this.dataGridViewTextBoxColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.dataGridViewTextBoxColumn2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.dataGridViewTextBoxColumn3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.dataGridViewTextBoxColumn4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.dataGridViewTextBoxColumn5 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.comboBoxRaidGroups = new System.Windows.Forms.ComboBox();
+            this.textBoxRaidGroupCount = new System.Windows.Forms.TextBox();
+            this.labelRaidGroups = new System.Windows.Forms.Label();
+            this.buttonGenerate = new System.Windows.Forms.Button();
+            this.buttonRegenerate = new System.Windows.Forms.Button();
             this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.raidCompDataGridView)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.raidDataGridView)).BeginInit();
@@ -121,73 +122,6 @@
             this.raidCompDataGridView.Size = new System.Drawing.Size(703, 135);
             this.raidCompDataGridView.TabIndex = 2;
             // 
-            // labelRaidComp
-            // 
-            this.labelRaidComp.AutoSize = true;
-            this.labelRaidComp.Location = new System.Drawing.Point(9, 24);
-            this.labelRaidComp.Name = "labelRaidComp";
-            this.labelRaidComp.Size = new System.Drawing.Size(103, 13);
-            this.labelRaidComp.TabIndex = 3;
-            this.labelRaidComp.Text = "Desired Composition";
-            // 
-            // raidDataGridView
-            // 
-            this.raidDataGridView.AllowUserToAddRows = false;
-            this.raidDataGridView.AllowUserToDeleteRows = false;
-            this.raidDataGridView.AllowUserToResizeColumns = false;
-            this.raidDataGridView.AllowUserToResizeRows = false;
-            this.raidDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            this.raidDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.dataGridViewTextBoxColumn1,
-            this.dataGridViewTextBoxColumn2,
-            this.dataGridViewTextBoxColumn3,
-            this.dataGridViewTextBoxColumn4,
-            this.dataGridViewTextBoxColumn5});
-            this.raidDataGridView.Location = new System.Drawing.Point(12, 238);
-            this.raidDataGridView.MultiSelect = false;
-            this.raidDataGridView.Name = "raidDataGridView";
-            this.raidDataGridView.RowHeadersVisible = false;
-            this.raidDataGridView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
-            this.raidDataGridView.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
-            this.raidDataGridView.Size = new System.Drawing.Size(703, 135);
-            this.raidDataGridView.TabIndex = 4;
-            // 
-            // comboBoxRaidGroups
-            // 
-            this.comboBoxRaidGroups.FormattingEnabled = true;
-            this.comboBoxRaidGroups.Location = new System.Drawing.Point(12, 211);
-            this.comboBoxRaidGroups.Name = "comboBoxRaidGroups";
-            this.comboBoxRaidGroups.Size = new System.Drawing.Size(121, 21);
-            this.comboBoxRaidGroups.TabIndex = 5;
-            this.comboBoxRaidGroups.SelectedValueChanged += new System.EventHandler(this.comboBoxRaidGroups_SelectedValueChanged);
-            // 
-            // textBoxRaidGroupCount
-            // 
-            this.textBoxRaidGroupCount.Location = new System.Drawing.Point(84, 185);
-            this.textBoxRaidGroupCount.Name = "textBoxRaidGroupCount";
-            this.textBoxRaidGroupCount.Size = new System.Drawing.Size(100, 20);
-            this.textBoxRaidGroupCount.TabIndex = 6;
-            this.textBoxRaidGroupCount.Text = "3";
-            // 
-            // labelRaidGroups
-            // 
-            this.labelRaidGroups.AutoSize = true;
-            this.labelRaidGroups.Location = new System.Drawing.Point(9, 188);
-            this.labelRaidGroups.Name = "labelRaidGroups";
-            this.labelRaidGroups.Size = new System.Drawing.Size(69, 13);
-            this.labelRaidGroups.TabIndex = 7;
-            this.labelRaidGroups.Text = "Raid Groups:";
-            // 
-            // buttonGenerate
-            // 
-            this.buttonGenerate.Location = new System.Drawing.Point(191, 181);
-            this.buttonGenerate.Name = "buttonGenerate";
-            this.buttonGenerate.Size = new System.Drawing.Size(75, 23);
-            this.buttonGenerate.TabIndex = 8;
-            this.buttonGenerate.Text = "Generate";
-            this.buttonGenerate.UseVisualStyleBackColor = true;
-            this.buttonGenerate.Click += new System.EventHandler(this.buttonGenerate_Click);
-            // 
             // Group1
             // 
             this.Group1.HeaderText = "Group 1";
@@ -232,6 +166,37 @@
             this.Group5.Resizable = System.Windows.Forms.DataGridViewTriState.False;
             this.Group5.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.Group5.Width = 140;
+            // 
+            // labelRaidComp
+            // 
+            this.labelRaidComp.AutoSize = true;
+            this.labelRaidComp.Location = new System.Drawing.Point(9, 24);
+            this.labelRaidComp.Name = "labelRaidComp";
+            this.labelRaidComp.Size = new System.Drawing.Size(103, 13);
+            this.labelRaidComp.TabIndex = 3;
+            this.labelRaidComp.Text = "Desired Composition";
+            // 
+            // raidDataGridView
+            // 
+            this.raidDataGridView.AllowUserToAddRows = false;
+            this.raidDataGridView.AllowUserToDeleteRows = false;
+            this.raidDataGridView.AllowUserToResizeColumns = false;
+            this.raidDataGridView.AllowUserToResizeRows = false;
+            this.raidDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            this.raidDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.dataGridViewTextBoxColumn1,
+            this.dataGridViewTextBoxColumn2,
+            this.dataGridViewTextBoxColumn3,
+            this.dataGridViewTextBoxColumn4,
+            this.dataGridViewTextBoxColumn5});
+            this.raidDataGridView.Location = new System.Drawing.Point(12, 238);
+            this.raidDataGridView.MultiSelect = false;
+            this.raidDataGridView.Name = "raidDataGridView";
+            this.raidDataGridView.RowHeadersVisible = false;
+            this.raidDataGridView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+            this.raidDataGridView.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
+            this.raidDataGridView.Size = new System.Drawing.Size(703, 135);
+            this.raidDataGridView.TabIndex = 4;
             // 
             // dataGridViewTextBoxColumn1
             // 
@@ -278,11 +243,58 @@
             this.dataGridViewTextBoxColumn5.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             this.dataGridViewTextBoxColumn5.Width = 140;
             // 
+            // comboBoxRaidGroups
+            // 
+            this.comboBoxRaidGroups.FormattingEnabled = true;
+            this.comboBoxRaidGroups.Location = new System.Drawing.Point(12, 211);
+            this.comboBoxRaidGroups.Name = "comboBoxRaidGroups";
+            this.comboBoxRaidGroups.Size = new System.Drawing.Size(121, 21);
+            this.comboBoxRaidGroups.TabIndex = 5;
+            this.comboBoxRaidGroups.SelectedValueChanged += new System.EventHandler(this.comboBoxRaidGroups_SelectedValueChanged);
+            // 
+            // textBoxRaidGroupCount
+            // 
+            this.textBoxRaidGroupCount.Location = new System.Drawing.Point(84, 185);
+            this.textBoxRaidGroupCount.Name = "textBoxRaidGroupCount";
+            this.textBoxRaidGroupCount.Size = new System.Drawing.Size(100, 20);
+            this.textBoxRaidGroupCount.TabIndex = 6;
+            this.textBoxRaidGroupCount.Text = "3";
+            // 
+            // labelRaidGroups
+            // 
+            this.labelRaidGroups.AutoSize = true;
+            this.labelRaidGroups.Location = new System.Drawing.Point(9, 188);
+            this.labelRaidGroups.Name = "labelRaidGroups";
+            this.labelRaidGroups.Size = new System.Drawing.Size(69, 13);
+            this.labelRaidGroups.TabIndex = 7;
+            this.labelRaidGroups.Text = "Raid Groups:";
+            // 
+            // buttonGenerate
+            // 
+            this.buttonGenerate.Location = new System.Drawing.Point(195, 183);
+            this.buttonGenerate.Name = "buttonGenerate";
+            this.buttonGenerate.Size = new System.Drawing.Size(75, 23);
+            this.buttonGenerate.TabIndex = 8;
+            this.buttonGenerate.Text = "Generate";
+            this.buttonGenerate.UseVisualStyleBackColor = true;
+            this.buttonGenerate.Click += new System.EventHandler(this.buttonGenerate_Click);
+            // 
+            // buttonRegenerate
+            // 
+            this.buttonRegenerate.Location = new System.Drawing.Point(276, 183);
+            this.buttonRegenerate.Name = "buttonRegenerate";
+            this.buttonRegenerate.Size = new System.Drawing.Size(75, 23);
+            this.buttonRegenerate.TabIndex = 9;
+            this.buttonRegenerate.Text = "Regenerate";
+            this.buttonRegenerate.UseVisualStyleBackColor = true;
+            this.buttonRegenerate.Click += new System.EventHandler(this.buttonRegenerate_Click);
+            // 
             // Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(726, 386);
+            this.Controls.Add(this.buttonRegenerate);
             this.Controls.Add(this.buttonGenerate);
             this.Controls.Add(this.labelRaidGroups);
             this.Controls.Add(this.textBoxRaidGroupCount);
@@ -330,6 +342,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn3;
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn4;
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn5;
+        private System.Windows.Forms.Button buttonRegenerate;
     }
 }
 
