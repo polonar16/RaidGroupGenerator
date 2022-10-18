@@ -416,8 +416,90 @@ namespace RaidCompGenerator
             return playerCharacters.Count;
         }
 
+        public struct PlayerRaidGroupWeight
+        {
+            public int raidIndex;
+            public int groupIndex;
+            public int partyMemberIndex;
+            public float weight;
+        }
+
+        public bool AttemptToDistributePlayerCharacter(PlayerCharacter playerCharacter, int raidGroupCount, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playerRaidGroupWeights, Random random)
+        {
+            int roleIndex = Helper.GetRoleIndex(playerCharacter.classSpecKey);
+            if (roleIndex == -1)
+            {
+                throw new ApplicationException(String.Format("Player {0}, character {1} has invalid class/specialisation: {2}.", playerCharacter.player, playerCharacter.character, playerCharacter.classSpecKey));
+            }
+
+            int gearTypeIndex = Helper.GetGearTypeIndex(playerCharacter.classSpecKey);
+
+            // First, calculate weights for each raid group and which ones are the best fit.
+            float bestRaidGroupWeight = 10000;
+
+            List<PlayerRaidGroupWeight> playerCharacterRaidGroupWeights = new List<PlayerRaidGroupWeight>();
+            for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)
+            {
+                if (playerCharacter.raid > 0 && raidIndex != playerCharacter.raid)
+                {
+                    continue;
+                }
+
+                bool exactMatch = false;
+
+                RaidGroup raidGroup = raidGroups[raidIndex];
+
+                PlayerRaidGroupWeight playerRaidGroupWeight = new PlayerRaidGroupWeight();
+                playerRaidGroupWeight.raidIndex = raidIndex;
+
+                if (!raidGroup.FindEmptyPositionForCharacter(desiredRaidComposition, playerCharacter, out playerRaidGroupWeight.groupIndex, out playerRaidGroupWeight.partyMemberIndex, out exactMatch))
+                {
+                    continue;
+                }
+
+                float raidMatchWeight = playerCharacter.raid != raidIndex ? 1000 : 0;
+                float exactMatchWeight = exactMatch ? 0 : 100;
+                float roleWeight = raidGroup.roleCounts[roleIndex] * 10;
+                float gearTypeWeight = raidGroup.gearTypeCounts[gearTypeIndex];
+                playerRaidGroupWeight.weight = raidMatchWeight + exactMatchWeight + roleWeight + gearTypeWeight;
+                playerCharacterRaidGroupWeights.Add(playerRaidGroupWeight);
+
+                if (playerRaidGroupWeight.weight < bestRaidGroupWeight)
+                {
+                    bestRaidGroupWeight = playerRaidGroupWeight.weight;
+                }
+            }
+
+            // Second, filter out the ones that don't fit as well.
+            List<PlayerRaidGroupWeight> suitableRaidGroups = new List<PlayerRaidGroupWeight>();
+            foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerCharacterRaidGroupWeights)
+            {
+                if (playerRaidGroupWeight.weight == bestRaidGroupWeight)
+                {
+                    suitableRaidGroups.Add(playerRaidGroupWeight);
+                }
+            }
+
+            if (suitableRaidGroups.Count > 0)
+            {
+                int weightIndex = random.Next(suitableRaidGroups.Count);
+                PlayerRaidGroupWeight playerRaidGroupWeight = suitableRaidGroups[weightIndex];
+                RaidGroup raidGroup = raidGroups[playerRaidGroupWeight.raidIndex];
+                raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
+
+                playerRaidGroupWeights.Add(playerCharacter, playerCharacterRaidGroupWeights);
+
+                return true;
+            }
+
+            return false;
+        }
+
         public void GenerateRaidGroups(int raidGroupCount, RaidComposition desiredRaidComposition)
         {
+            TimeSpan span = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            Random random = new Random((int)span.TotalSeconds);
+
             raidGroups.Clear();
             for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)
             {
@@ -427,7 +509,9 @@ namespace RaidCompGenerator
 
             playerCharacters.Sort();
 
+
             // Generate the raids.
+            Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playerRaidGroupWeights = new Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>>();
             foreach (PlayerCharacter playerCharacter in playerCharacters)
             {
                 if (playerCharacter.absent)
@@ -435,54 +519,7 @@ namespace RaidCompGenerator
                     continue;
                 }
 
-                int roleIndex = Helper.GetRoleIndex(playerCharacter.classSpecKey);
-                if (roleIndex == -1)
-                {
-                    throw new ApplicationException(String.Format("Player {0}, character {1} has invalid class/specialisation: {2}.", playerCharacter.player, playerCharacter.character, playerCharacter.classSpecKey));
-                }
-
-                int gearTypeIndex = Helper.GetGearTypeIndex(playerCharacter.classSpecKey);
-
-                // Calculate weights.
-                float bestRaidGroupWeight = 10000;
-                int bestRaidGroupIndex = -1, bestRaidGroupGroupIndex = -1, bestRaidGroupPartyMemberIndex = -1;
-
-                for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)
-                {
-                    if (playerCharacter.raid > 0 && raidIndex != playerCharacter.raid)
-                    {
-                        continue;
-                    }
-
-                    int groupIndex = 0, partyMemberIndex = 0;
-                    bool exactMatch = false;
-
-                    RaidGroup raidGroup = raidGroups[raidIndex];
-                    if (!raidGroup.FindEmptyPositionForCharacter(desiredRaidComposition, playerCharacter, out groupIndex, out partyMemberIndex, out exactMatch))
-                    {
-                        continue;
-                    }
-
-                    float raidMatchWeight = playerCharacter.raid != raidIndex ? 1000 : 0;
-                    float exactMatchWeight = exactMatch ? 0 : 100;
-                    float roleWeight = raidGroup.roleCounts[roleIndex] * 10;
-                    float gearTypeWeight = raidGroup.gearTypeCounts[gearTypeIndex];
-                    float raidGroupWeight = raidMatchWeight + exactMatchWeight + roleWeight + gearTypeWeight;
-
-                    if (raidGroupWeight < bestRaidGroupWeight)
-                    {
-                        bestRaidGroupWeight = raidGroupWeight;
-                        bestRaidGroupIndex = raidIndex;
-                        bestRaidGroupGroupIndex = groupIndex;
-                        bestRaidGroupPartyMemberIndex = partyMemberIndex;
-                    }
-                }
-
-                if (bestRaidGroupIndex >= 0)
-                {
-                    RaidGroup raidGroup = raidGroups[bestRaidGroupIndex];
-                    raidGroup.SetPlayerCharacter(bestRaidGroupGroupIndex, bestRaidGroupPartyMemberIndex, playerCharacter);
-                }
+                AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, playerRaidGroupWeights, random);
             }
         }
     }
