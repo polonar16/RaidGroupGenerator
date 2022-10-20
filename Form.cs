@@ -38,6 +38,7 @@ namespace RaidCompGenerator
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            saveFileDialog.FileName = openFileDialog.FileName;
             saveFileDialog.Filter = "Microsoft XLS Files|*.xls";
             saveFileDialog.ShowDialog();
         }
@@ -206,41 +207,7 @@ namespace RaidCompGenerator
             workbook.Save(saveFileDialog.FileName);
         }
 
-        private void ExecuteGenerate(bool generateRandomSeed)
-        {
-            try
-            {
-                raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, generateRandomSeed);
-
-                comboBoxRaidGroups.Items.Clear();
-                for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroups.Count; raidGroupIndex++)
-                {
-                    comboBoxRaidGroups.Items.Add(String.Format("Raid Group {0}", raidGroupIndex + 1));
-                }
-
-                if (comboBoxRaidGroups.Items.Count > 0)
-                {
-                    comboBoxRaidGroups.SelectedIndex = 0;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-
-        private void buttonGenerate_Click(object sender, EventArgs e)
-        {
-            ExecuteGenerate(true);
-        }
-
-        private void buttonRegenerate_Click(object sender, EventArgs e)
-        {
-            ExecuteGenerate(false);
-        }
-
-        private void comboBoxRaidGroups_SelectedValueChanged(object sender, EventArgs e)
+        private void SetupRaidGroup()
         {
             RaidGroup raidGroup = raidGroupGenerator.raidGroups[comboBoxRaidGroups.SelectedIndex];
             for (int groupIndex = 0; groupIndex < raidGroup.characters.GetLength(0); groupIndex++)
@@ -261,6 +228,51 @@ namespace RaidCompGenerator
                     }
                 }
             }
+        }
+
+        private void ExecuteGenerate(bool generateRandomSeed)
+        {
+            //try
+            {
+                raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, generateRandomSeed);
+
+                int comboBoxPreviousIndex = comboBoxRaidGroups.SelectedIndex;
+                comboBoxRaidGroups.Items.Clear();
+                for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroups.Count; raidGroupIndex++)
+                {
+                    comboBoxRaidGroups.Items.Add(String.Format("Raid Group {0}", raidGroupIndex + 1));
+                }
+
+                if (comboBoxRaidGroups.Items.Count > 0 && comboBoxPreviousIndex == -1)
+                {
+                    comboBoxRaidGroups.SelectedIndex = 0;
+                }
+                else if (comboBoxPreviousIndex < comboBoxRaidGroups.Items.Count)
+                {
+                    comboBoxRaidGroups.SelectedIndex = comboBoxPreviousIndex;
+                }
+
+                SetupRaidGroup();
+            }
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message);
+            //}
+        }
+
+        private void buttonGenerate_Click(object sender, EventArgs e)
+        {
+            ExecuteGenerate(true);
+        }
+
+        private void buttonRegenerate_Click(object sender, EventArgs e)
+        {
+            ExecuteGenerate(false);
+        }
+
+        private void comboBoxRaidGroups_SelectedValueChanged(object sender, EventArgs e)
+        {
+            SetupRaidGroup();
         }
     }
 }
