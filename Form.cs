@@ -17,12 +17,16 @@ namespace RaidCompGenerator
         RaidComposition desiredRaidComposition;
         RaidGroupGenerator raidGroupGenerator;
 
+        int randomSeed = 0;
+
         public Form()
         {
             InitializeComponent();
 
             desiredRaidComposition = new RaidComposition();
             raidGroupGenerator = new RaidGroupGenerator();
+
+            textBoxRandomSeed.Text = randomSeed.ToString();
 
 #if !DEBUG
             buttonRegenerate.Enabled = false;
@@ -99,7 +103,7 @@ namespace RaidCompGenerator
             Worksheet worksheet = workbook.GetWorksheet("Output Values");
             CellCollection worksheetCells = worksheet.Cells;
 
-            //try
+            try
             {
                 int rowIndex = 11, colIndex = 0;
                 int playerColIndex = colIndex;
@@ -143,10 +147,10 @@ namespace RaidCompGenerator
                     colIndex = playerColIndex;
                 }
             }
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.Message);
-            //}
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
@@ -232,9 +236,15 @@ namespace RaidCompGenerator
 
         private void ExecuteGenerate(bool generateRandomSeed)
         {
-            //try
+            try
             {
-                raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, generateRandomSeed);
+                if (generateRandomSeed)
+                {
+                    randomSeed = Guid.NewGuid().GetHashCode();
+                    textBoxRandomSeed.Text = randomSeed.ToString();
+                }
+
+                raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, randomSeed);
 
                 int comboBoxPreviousIndex = comboBoxRaidGroups.SelectedIndex;
                 comboBoxRaidGroups.Items.Clear();
@@ -254,10 +264,10 @@ namespace RaidCompGenerator
 
                 SetupRaidGroup();
             }
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.Message);
-            //}
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         private void buttonGenerate_Click(object sender, EventArgs e)

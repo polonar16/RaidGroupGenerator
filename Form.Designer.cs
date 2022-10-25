@@ -52,6 +52,8 @@
             this.labelRaidGroups = new System.Windows.Forms.Label();
             this.buttonGenerate = new System.Windows.Forms.Button();
             this.buttonRegenerate = new System.Windows.Forms.Button();
+            this.textBoxRandomSeed = new System.Windows.Forms.TextBox();
+            this.labelRandomSeed = new System.Windows.Forms.Label();
             this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.raidCompDataGridView)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.raidDataGridView)).BeginInit();
@@ -271,7 +273,7 @@
             // 
             // buttonGenerate
             // 
-            this.buttonGenerate.Location = new System.Drawing.Point(195, 183);
+            this.buttonGenerate.Location = new System.Drawing.Point(190, 183);
             this.buttonGenerate.Name = "buttonGenerate";
             this.buttonGenerate.Size = new System.Drawing.Size(75, 23);
             this.buttonGenerate.TabIndex = 8;
@@ -281,7 +283,7 @@
             // 
             // buttonRegenerate
             // 
-            this.buttonRegenerate.Location = new System.Drawing.Point(276, 183);
+            this.buttonRegenerate.Location = new System.Drawing.Point(461, 183);
             this.buttonRegenerate.Name = "buttonRegenerate";
             this.buttonRegenerate.Size = new System.Drawing.Size(75, 23);
             this.buttonRegenerate.TabIndex = 9;
@@ -289,11 +291,29 @@
             this.buttonRegenerate.UseVisualStyleBackColor = true;
             this.buttonRegenerate.Click += new System.EventHandler(this.buttonRegenerate_Click);
             // 
+            // textBoxRandomSeed
+            // 
+            this.textBoxRandomSeed.Location = new System.Drawing.Point(355, 185);
+            this.textBoxRandomSeed.Name = "textBoxRandomSeed";
+            this.textBoxRandomSeed.Size = new System.Drawing.Size(100, 20);
+            this.textBoxRandomSeed.TabIndex = 10;
+            // 
+            // labelRandomSeed
+            // 
+            this.labelRandomSeed.AutoSize = true;
+            this.labelRandomSeed.Location = new System.Drawing.Point(271, 188);
+            this.labelRandomSeed.Name = "labelRandomSeed";
+            this.labelRandomSeed.Size = new System.Drawing.Size(78, 13);
+            this.labelRandomSeed.TabIndex = 11;
+            this.labelRandomSeed.Text = "Random Seed:";
+            // 
             // Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(726, 386);
+            this.Controls.Add(this.labelRandomSeed);
+            this.Controls.Add(this.textBoxRandomSeed);
             this.Controls.Add(this.buttonRegenerate);
             this.Controls.Add(this.buttonGenerate);
             this.Controls.Add(this.labelRaidGroups);
@@ -343,6 +363,8 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn4;
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn5;
         private System.Windows.Forms.Button buttonRegenerate;
+        private System.Windows.Forms.TextBox textBoxRandomSeed;
+        private System.Windows.Forms.Label labelRandomSeed;
     }
 }
 

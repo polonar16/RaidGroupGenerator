@@ -255,7 +255,7 @@ namespace RaidCompGenerator
                     || roleIndex == getIndexOfString(Roles, "PhysicalRanged")
                     || roleIndex == getIndexOfString(Roles, "Caster");
             }
-            else if (String.Compare(desiredRole, "Any healer") == 0)
+            else if (String.Compare(desiredRole, "Any Healer") == 0)
             {
                 return roleIndex == getIndexOfString(Roles, "Healer");
             }
@@ -500,7 +500,6 @@ namespace RaidCompGenerator
     {
         public List<RaidGroup> raidGroups = new List<RaidGroup>();
         private List<PlayerCharacter> playerCharacters = new List<PlayerCharacter>();
-        private int m_randomSeed = 0;
 
         public void ClearPlayerCharacters()
         {
@@ -704,8 +703,8 @@ namespace RaidCompGenerator
                 {
                     PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(groupIndex, partyMemberIndex);
 
-                    int ctr = 0;
-                    if (AttemptToRedistributePlayer(ctr, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights))
+                    int ctr = 0, priorityThreshold = playerCharacter.priority + 1;
+                    if (existingPlayerCharacter.priority <= priorityThreshold && AttemptToRedistributePlayer(ctr, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights))
                     {
                         // Successfully moved someone else's character, assign this character.
                         raidGroup.SetPlayerCharacter(groupIndex, partyMemberIndex, playerCharacter);
@@ -813,14 +812,9 @@ namespace RaidCompGenerator
             return false;
         }
 
-        public void GenerateRaidGroups(int raidGroupCount, RaidComposition desiredRaidComposition, bool generateRandomSeed)
+        public void GenerateRaidGroups(int raidGroupCount, RaidComposition desiredRaidComposition, int randomSeed)
         {
-            if (m_randomSeed == 0 || generateRandomSeed)
-            {
-                TimeSpan span = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-                m_randomSeed = (int)span.TotalSeconds;
-            }
-            Random random = new Random(m_randomSeed);
+            Random random = new Random(randomSeed);
 
             raidGroups.Clear();
             for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)
