@@ -115,6 +115,7 @@
             this.Group3,
             this.Group4,
             this.Group5});
+            this.raidCompDataGridView.Enabled = false;
             this.raidCompDataGridView.Location = new System.Drawing.Point(12, 40);
             this.raidCompDataGridView.MultiSelect = false;
             this.raidCompDataGridView.Name = "raidCompDataGridView";
@@ -191,6 +192,7 @@
             this.dataGridViewTextBoxColumn3,
             this.dataGridViewTextBoxColumn4,
             this.dataGridViewTextBoxColumn5});
+            this.raidDataGridView.Enabled = false;
             this.raidDataGridView.Location = new System.Drawing.Point(12, 238);
             this.raidDataGridView.MultiSelect = false;
             this.raidDataGridView.Name = "raidDataGridView";

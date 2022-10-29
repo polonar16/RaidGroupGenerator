@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,6 +33,21 @@ namespace RaidCompGenerator
             buttonRegenerate.Enabled = false;
             buttonRegenerate.Visible = false;
 #endif
+        }
+
+        private void LoadDefaultWorkbook()
+        {
+            if (File.Exists("config.ini"))
+            {
+                using (StreamReader readtext = new StreamReader("config.ini"))
+                {
+                    string defaultWorkbook = readtext.ReadLine();
+                    if (File.Exists(defaultWorkbook))
+                    {
+                        LoadWorkbook(defaultWorkbook);
+                    }
+                }
+            }
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -64,6 +80,8 @@ namespace RaidCompGenerator
             raidDataGridView.Rows.Add(blankRow);
             raidDataGridView.Rows.Add(blankRow);
             raidDataGridView.ClearSelection();
+
+            LoadDefaultWorkbook();
         }
 
         private void ImportDesiredRaidComposition(Workbook workbook)
@@ -103,7 +121,7 @@ namespace RaidCompGenerator
             Worksheet worksheet = workbook.GetWorksheet("Output Values");
             CellCollection worksheetCells = worksheet.Cells;
 
-            try
+            //try
             {
                 int rowIndex = 11, colIndex = 0;
                 int playerColIndex = colIndex;
@@ -141,24 +159,48 @@ namespace RaidCompGenerator
                             playerCharacter.raid = raidIndex - 1;
                         }
                     }
+
+                    if (!worksheetCells[rowIndex, colIndex].IsEmpty)
+                    {
+                        int raidPositionIndex = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
+                        if (raidPositionIndex > 0)
+                        {
+                            playerCharacter.raidPosition = raidPositionIndex - 1;
+                        }
+                    }
+
                     raidGroupGenerator.AddPlayerCharacter(playerCharacter);
 
                     rowIndex++;
                     colIndex = playerColIndex;
                 }
             }
-            catch (Exception ex)
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message);
+            //}
+        }
+
+        private void WriteIniFile(string fileName)
+        {
+            using (StreamWriter writetext = new StreamWriter("config.ini"))
             {
-                MessageBox.Show(ex.Message);
+                writetext.WriteLine(fileName);
             }
+        }
+
+        private void LoadWorkbook(string fileName)
+        {
+            Workbook workbook = Workbook.Load(fileName);
+
+            ImportDesiredRaidComposition(workbook);
+            ImportPlayerCharacters(workbook);
         }
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
-            Workbook workbook = Workbook.Load(openFileDialog.FileName);
-
-            ImportDesiredRaidComposition(workbook);
-            ImportPlayerCharacters(workbook);
+            LoadWorkbook(openFileDialog.FileName);
+            WriteIniFile(openFileDialog.FileName);
         }
 
         Cell CreateCell(Worksheet worksheet, int rowIndex, int columnIndex, string value)
@@ -175,10 +217,11 @@ namespace RaidCompGenerator
             CellCollection cells = worksheet.Cells;
 
             int startRowIndex = 0, startColIndex = 1;
-            foreach (RaidGroup raidGroup in raidGroupGenerator.raidGroups)
+            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroups.Count; raidGroupIndex++)
             {
-                startRowIndex++; 
-                
+                startRowIndex++;
+
+                RaidGroup raidGroup = raidGroupGenerator.raidGroups.At(raidGroupIndex);                
                 int rowIndex = startRowIndex, colIndex = startColIndex;
                 for (int groupIndex = 0; groupIndex < raidGroup.characters.GetLength(0); groupIndex++)
                 {
@@ -201,6 +244,21 @@ namespace RaidCompGenerator
                 startRowIndex = rowIndex;
             }
 
+            // Write out characters that couldn't be assigned to a raid:
+            {
+                int rowIndex = startRowIndex + 2, colIndex = startColIndex;
+                Cell cell = CreateCell(worksheet, rowIndex++, colIndex, "Characters who couild not be assigned:");
+
+                for (int playerCharacterIndex = 0; playerCharacterIndex < raidGroupGenerator.GetPlayerCharacterCount(); playerCharacterIndex++)
+                {
+                    PlayerCharacter playerCharacter = raidGroupGenerator.GetPlayerCharacterAt(playerCharacterIndex);
+                    if (!raidGroupGenerator.AnyRaidContainsCharacter(playerCharacter))
+                    {
+                        cell = CreateCell(worksheet, rowIndex++, colIndex, playerCharacter.character);
+                    }
+                }
+            }
+
             workbook.Worksheets.Add(worksheet);
         }
 
@@ -213,7 +271,7 @@ namespace RaidCompGenerator
 
         private void SetupRaidGroup()
         {
-            RaidGroup raidGroup = raidGroupGenerator.raidGroups[comboBoxRaidGroups.SelectedIndex];
+            RaidGroup raidGroup = raidGroupGenerator.raidGroups.At(comboBoxRaidGroups.SelectedIndex);
             for (int groupIndex = 0; groupIndex < raidGroup.characters.GetLength(0); groupIndex++)
             {
                 for (int partyMemberIndex = 0; partyMemberIndex < raidGroup.characters.GetLength(1); partyMemberIndex++)
@@ -236,12 +294,16 @@ namespace RaidCompGenerator
 
         private void ExecuteGenerate(bool generateRandomSeed)
         {
-            try
+            //try
             {
                 if (generateRandomSeed)
                 {
                     randomSeed = Guid.NewGuid().GetHashCode();
                     textBoxRandomSeed.Text = randomSeed.ToString();
+                }
+                else
+                {
+                    randomSeed = Convert.ToInt32(textBoxRandomSeed.Text);
                 }
 
                 raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, randomSeed);
@@ -264,10 +326,10 @@ namespace RaidCompGenerator
 
                 SetupRaidGroup();
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message);
+            //}
         }
 
         private void buttonGenerate_Click(object sender, EventArgs e)

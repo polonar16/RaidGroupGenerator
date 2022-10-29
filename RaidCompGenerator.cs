@@ -262,6 +262,11 @@ namespace RaidCompGenerator
 
             return false;
         }
+
+        internal static int GetSpecIndex(string classSpecKey)
+        {
+            return getIndexOfString(Specialisations, classSpecKey);
+        }
     }
 
     public class PlayerCharacter : IComparable
@@ -275,6 +280,7 @@ namespace RaidCompGenerator
         public List<int> absentRaids = new List<int>();
         public int priority = 10;
         public int raid = -1;
+        public int raidPosition = -1;
         public int CompareTo(object that)
         {
             if (that == null)
@@ -308,28 +314,94 @@ namespace RaidCompGenerator
             raidPositions = new string[5, 5];
         }
 
-        public void SetRaidPositionSpecialisation(int group, int partyMemberIndex, string specialisation)
+        public void SetRaidPositionSpecialisation(int groupIndex, int partyMemberIndex, string specialisation)
         {
-            raidPositions[group, partyMemberIndex] = specialisation;
+            raidPositions[groupIndex, partyMemberIndex] = specialisation;
         }
 
-        public string GetRaidPositionSpecialisation(int group, int partyMemberIndex)
+        public string GetRaidPositionSpecialisation(int groupIndex, int partyMemberIndex)
         {
-            return raidPositions[group, partyMemberIndex];
+            return raidPositions[groupIndex, partyMemberIndex];
         }
-    };
 
-    public class RaidGroup
+        internal bool IsExactRoleMatch(int groupIndex, int partyMemberIndex, string specialisation)
+        {
+            string desiredClassSpec = raidPositions[groupIndex, partyMemberIndex];
+            if (desiredClassSpec == specialisation)
+            {
+                return true;
+            }
+
+            else if(specialisation.Contains(desiredClassSpec))
+            {
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    public struct RaidPosition
+    {
+        public int groupIndex;
+        public int partyMemberIndex;
+        public float weight;
+    }
+
+    public class RaidGroup : ICloneable
     {
         public PlayerCharacter[,] characters;
         public int[] roleCounts;
         public int[] gearTypeCounts;
+        public int[] classSpecCounts;
+
+        public object Clone()
+        {
+            return this.MemberwiseClone();
+        }
 
         public RaidGroup()
         {
             characters = new PlayerCharacter[5, 5];
             roleCounts = new int[Helper.Roles.Count];
             gearTypeCounts = new int[Helper.GearTypes.Count];
+            classSpecCounts = new int[Helper.Specialisations.Count];
+        }
+
+        public RaidGroup(RaidGroup that)
+        {
+            characters = new PlayerCharacter[5, 5];
+            roleCounts = new int[Helper.Roles.Count];
+            gearTypeCounts = new int[Helper.GearTypes.Count];
+            classSpecCounts = new int[Helper.Specialisations.Count];
+
+            Set(that);
+        }
+
+        public void Set(RaidGroup that)
+        {
+            for (int groupIndex = 0; groupIndex < that.characters.GetLength(0); groupIndex++)
+            {
+                for (int partyMemberIndex = 0; partyMemberIndex < that.characters.GetLength(1); partyMemberIndex++)
+                {
+                    characters[groupIndex, partyMemberIndex] = that.characters[groupIndex, partyMemberIndex];
+                }
+            }
+
+            for (int roleIndex = 0; roleIndex < that.roleCounts.GetLength(0); roleIndex++)
+            {
+                roleCounts[roleIndex] = that.roleCounts[roleIndex];
+            }
+
+            for (int gearTypeIndex = 0; gearTypeIndex < that.gearTypeCounts.GetLength(0); gearTypeIndex++)
+            {
+                gearTypeCounts[gearTypeIndex] = that.gearTypeCounts[gearTypeIndex];
+            }
+
+            for (int classSpecIndex = 0; classSpecIndex < that.classSpecCounts.GetLength(0); classSpecIndex++)
+            {
+                classSpecCounts[classSpecIndex] = that.classSpecCounts[classSpecIndex];
+            }
         }
 
         public bool ContainsPlayer(string player)
@@ -340,6 +412,22 @@ namespace RaidCompGenerator
                 {
                     PlayerCharacter playerCharacter = characters[groupIndex, partyMemberIndex];
                     if (playerCharacter != null && playerCharacter.player == player)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        internal bool ContainsPlayerCharacter(PlayerCharacter playerCharacter)
+        {
+            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+            {
+                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                {
+                    if (characters[groupIndex, partyMemberIndex] == playerCharacter)
                     {
                         return true;
                     }
@@ -365,70 +453,80 @@ namespace RaidCompGenerator
             return null;
         }
 
-        public bool FindFullPositionForClassSpec(string classSpecKey, RaidComposition desiredRaidComposition, bool allowGenericRoleMatch, out int out_groupIndex, out int out_partyMemberIndex)
+        public List<RaidPosition> FindFullPositionsForClassSpec(string classSpecKey, RaidComposition desiredRaidComposition, bool allowGenericRoleMatch)
         {
-            out_groupIndex = -1;
-            out_partyMemberIndex = -1;
-
-            // Try to match exact class/spec.
-            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
-            {
-                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
-                {
-                    string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
-                    if (classSpecKey == desiredSpecialisation && characters[groupIndex, partyMemberIndex] != null)
-                    {
-                        out_groupIndex = groupIndex;
-                        out_partyMemberIndex = partyMemberIndex;
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        public bool FindEmptyPositionForClassSpec(string classSpecKey, RaidComposition desiredRaidComposition, bool allowGenericRoleMatch, out int out_groupIndex, out int out_partyMemberIndex, out float out_matchWeight)
-        {
-            out_groupIndex = -1;
-            out_partyMemberIndex = -1;
-            out_matchWeight = 10000;
-
-            // Try to match exact class/spec.
-            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
-            {
-                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
-                {
-                    string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
-                    if (classSpecKey == desiredSpecialisation && characters[groupIndex, partyMemberIndex] == null)
-                    {
-                        out_groupIndex = groupIndex;
-                        out_partyMemberIndex = partyMemberIndex;
-                        out_matchWeight = 0;
-                        return true;
-                    }
-                }
-            }
-
-            // Try to match class.
-            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
-            {
-                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
-                {
-                    string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
-                    if (classSpecKey.Contains(desiredSpecialisation) && characters[groupIndex, partyMemberIndex] == null)
-                    {
-                        out_groupIndex = groupIndex;
-                        out_partyMemberIndex = partyMemberIndex;
-                        out_matchWeight = 50;
-                        return true;
-                    }
-                }
-            }
-
-            // Try to match role (dps, tank, healer)
+            List<RaidPosition> raidPositions = new List<RaidPosition>();
             if (allowGenericRoleMatch)
             {
+                // Try to match role (dps, tank, healer)
+                for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+                {
+                    for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                    {
+                        string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
+                        if (Helper.MatchClassSpecToRole(desiredSpecialisation, classSpecKey) && characters[groupIndex, partyMemberIndex] != null)
+                        {
+                            RaidPosition raidPosition = new RaidPosition();
+                            raidPosition.groupIndex = groupIndex;
+                            raidPosition.partyMemberIndex = partyMemberIndex;
+                            raidPosition.weight = 10000;
+                            raidPositions.Add(raidPosition);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Try to match exact class/spec.
+                for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+                {
+                    for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                    {
+                        string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
+                        if (classSpecKey == desiredSpecialisation && characters[groupIndex, partyMemberIndex] != null)
+                        {
+                            RaidPosition raidPosition = new RaidPosition();
+                            raidPosition.groupIndex = groupIndex;
+                            raidPosition.partyMemberIndex = partyMemberIndex;
+                            raidPosition.weight = 0;
+                            raidPositions.Add(raidPosition);
+                        }
+                    }
+                }
+
+                if (raidPositions.Count > 0)
+                {
+                    return raidPositions;
+                }
+
+                // Try to match class.
+                for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+                {
+                    for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                    {
+                        string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
+                        if (classSpecKey.Contains(desiredSpecialisation) && characters[groupIndex, partyMemberIndex] != null)
+                        {
+                            RaidPosition raidPosition = new RaidPosition();
+                            raidPosition.groupIndex = groupIndex;
+                            raidPosition.partyMemberIndex = partyMemberIndex;
+                            raidPosition.weight = 50;
+                            raidPositions.Add(raidPosition);
+                        }
+                    }
+                }
+            }
+
+            return raidPositions;
+        }
+
+        public List<RaidPosition> FindEmptyPositionsForClassSpec(string classSpecKey, RaidComposition desiredRaidComposition, bool allowGenericRoleMatch)
+        {
+            List<RaidPosition> raidPositions = new List<RaidPosition>();
+
+            if (allowGenericRoleMatch)
+            {
+                // Try to match role (dps, tank, healer)
                 for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
                 {
                     for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
@@ -436,11 +534,82 @@ namespace RaidCompGenerator
                         string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
                         if (Helper.MatchClassSpecToRole(desiredSpecialisation, classSpecKey) && characters[groupIndex, partyMemberIndex] == null)
                         {
-                            out_groupIndex = groupIndex;
-                            out_partyMemberIndex = partyMemberIndex;
-                            out_matchWeight = 200;
-                            return true;
+                            RaidPosition raidPosition = new RaidPosition();
+                            raidPosition.groupIndex = groupIndex;
+                            raidPosition.partyMemberIndex = partyMemberIndex;
+                            raidPosition.weight = 200;
+                            raidPositions.Add(raidPosition);
                         }
+                    }
+                }
+            }
+            else
+            {
+                // Try to match exact class/spec.
+                for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+                {
+                    for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                    {
+                        string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
+                        if (classSpecKey == desiredSpecialisation && characters[groupIndex, partyMemberIndex] == null)
+                        {
+                            RaidPosition raidPosition = new RaidPosition();
+                            raidPosition.groupIndex = groupIndex;
+                            raidPosition.partyMemberIndex = partyMemberIndex;
+                            raidPosition.weight = 0;
+                            raidPositions.Add(raidPosition);
+                        }
+                    }
+                }
+
+                if (raidPositions.Count > 0)
+                {
+                    return raidPositions;
+                }
+
+                // Try to match class.
+                for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+                {
+                    for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                    {
+                        string desiredSpecialisation = desiredRaidComposition.GetRaidPositionSpecialisation(groupIndex, partyMemberIndex);
+                        if (classSpecKey.Contains(desiredSpecialisation) && characters[groupIndex, partyMemberIndex] == null)
+                        {
+                            RaidPosition raidPosition = new RaidPosition();
+                            raidPosition.groupIndex = groupIndex;
+                            raidPosition.partyMemberIndex = partyMemberIndex;
+                            raidPosition.weight = 50;
+
+                            raidPositions.Add(raidPosition);
+                        }
+                    }
+                }
+            }
+
+            return raidPositions;
+        }
+
+        public void SetPlayerCharacter(int groupIndex, int partyMemberIndex, PlayerCharacter playerCharacter)
+        {
+            characters[groupIndex, partyMemberIndex] = playerCharacter;
+
+            CalculateRoleCounts();
+        }
+
+        public bool GetPlayerCharacterLocation(PlayerCharacter playerCharacter, out int out_groupIndex, out int out_partyMemberIndex)
+        {
+            out_groupIndex = -1;
+            out_partyMemberIndex = -1;
+
+            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+            {
+                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                {
+                    if (characters[groupIndex, partyMemberIndex] == playerCharacter)
+                    {
+                        out_groupIndex = groupIndex;
+                        out_partyMemberIndex = partyMemberIndex;
+                        return true;
                     }
                 }
             }
@@ -448,10 +617,41 @@ namespace RaidCompGenerator
             return false;
         }
 
-        public void SetPlayerCharacter(int groupIndex, int partyMemberIndex, PlayerCharacter playerCharacter)
+        internal void ReplacePlayerCharacter(PlayerCharacter existingPlayerCharacter, PlayerCharacter playerCharacter)
         {
-            characters[groupIndex, partyMemberIndex] = playerCharacter;
+            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+            {
+                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                {
+                    if (characters[groupIndex, partyMemberIndex] == existingPlayerCharacter)
+                    {
+                        SetPlayerCharacter(groupIndex, partyMemberIndex, playerCharacter);
+                        CalculateRoleCounts();
+                        return;
+                    }
+                }
+            }
+        }
 
+        internal void RemovePlayerCharacter(PlayerCharacter existingPlayerCharacter)
+        {
+            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
+            {
+                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
+                {
+                    PlayerCharacter playerCharacter = characters[groupIndex, partyMemberIndex];
+                    if (playerCharacter != null && playerCharacter == existingPlayerCharacter)
+                    {
+                        SetPlayerCharacter(groupIndex, partyMemberIndex, null);
+                        CalculateRoleCounts();
+                        return;
+                    }
+                }
+            }
+        }
+
+        public void CalculateRoleCounts()
+        {
             for (int roleIndex = 0; roleIndex < Helper.Roles.Count; roleIndex++)
             {
                 roleCounts[roleIndex] = 0;
@@ -471,21 +671,7 @@ namespace RaidCompGenerator
                         PlayerCharacter raidPlayerCharacter = characters[raidGroupIndex, raidPartyMemberIndex];
                         roleCounts[Helper.GetRoleIndex(raidPlayerCharacter.classSpecKey)]++;
                         gearTypeCounts[Helper.GetGearTypeIndex(raidPlayerCharacter.classSpecKey)]++;
-                    }
-                }
-            }
-        }
-
-        internal void RemovePlayerCharacter(PlayerCharacter existingPlayerCharacter)
-        {
-            for (int groupIndex = 0; groupIndex < characters.GetLength(0); groupIndex++)
-            {
-                for (int partyMemberIndex = 0; partyMemberIndex < characters.GetLength(1); partyMemberIndex++)
-                {
-                    PlayerCharacter playerCharacter = characters[groupIndex, partyMemberIndex];
-                    if (playerCharacter != null && playerCharacter == existingPlayerCharacter)
-                    {
-                        characters[groupIndex, partyMemberIndex] = null;
+                        classSpecCounts[Helper.GetSpecIndex(raidPlayerCharacter.classSpecKey)]++;
                     }
                 }
             }
@@ -495,10 +681,60 @@ namespace RaidCompGenerator
         {
             return characters[groupIndex, partyMemberIndex];
         }
+
+        internal bool PositionIsEmpty(int groupIndex, int partyMemberIndex)
+        {
+            return characters[groupIndex, partyMemberIndex] == null;
+        }
     }
+
+    public class RaidGroupCollection
+    {
+        List<RaidGroup> raidGroups = new List<RaidGroup>();
+
+        public int Count
+        {
+            get {  return raidGroups.Count; }
+        }
+
+        public RaidGroup At(int index)
+        {
+            return raidGroups[index];
+        }
+        public void Add(RaidGroup raidGroup)
+        {
+            raidGroups.Add(raidGroup);
+        }
+
+        public void Clear()
+        {
+            raidGroups.Clear();
+        }
+
+        public RaidGroupCollection Clone()
+        {
+            RaidGroupCollection raidGroupsClone = new RaidGroupCollection();
+            foreach (RaidGroup raidGroupTemp in raidGroups)
+            {
+                raidGroupsClone.Add(new RaidGroup(raidGroupTemp));
+            }
+            return raidGroupsClone;
+        }
+
+        public void Set(RaidGroupCollection that)
+        {
+            for (int raidGroupIndex = 0; raidGroupIndex < that.Count; raidGroupIndex++)
+            {
+                raidGroups[raidGroupIndex].Set(that.At(raidGroupIndex));
+            }
+        }
+    }
+
     public class RaidGroupGenerator
     {
-        public List<RaidGroup> raidGroups = new List<RaidGroup>();
+        static readonly int MAX_RECURSIONS = 6;
+
+        public RaidGroupCollection raidGroups = new RaidGroupCollection();
         private List<PlayerCharacter> playerCharacters = new List<PlayerCharacter>();
 
         public void ClearPlayerCharacters()
@@ -511,18 +747,49 @@ namespace RaidCompGenerator
             playerCharacters.Add(playerCharacter);
         }
 
+        public PlayerCharacter GetPlayerCharacterAt(int index)
+        {
+            return playerCharacters[index];
+        }
+
         public int GetPlayerCharacterCount()
         {
             return playerCharacters.Count;
         }
 
-        public struct PlayerRaidGroupWeight
+        public class PlayerRaidGroupWeight : IComparable
         {
             public int raidIndex;
             public int groupIndex;
             public int partyMemberIndex;
             public bool exactRoleMatch;
             public float weight;
+
+            public int CompareTo(object that)
+            {
+                if (that == null)
+                {
+                    return 1;
+                }
+
+                PlayerRaidGroupWeight thatPlayerRaidGroupWeight = that as PlayerRaidGroupWeight;
+                if (thatPlayerRaidGroupWeight.weight != weight)
+                {
+                    return this.weight > thatPlayerRaidGroupWeight.weight ? 1 : -1;
+                }
+
+                if (thatPlayerRaidGroupWeight.raidIndex != raidIndex)
+                {
+                    return this.raidIndex > thatPlayerRaidGroupWeight.raidIndex ? 1 : -1;
+                }
+
+                if (thatPlayerRaidGroupWeight.groupIndex != groupIndex)
+                {
+                    return this.groupIndex > thatPlayerRaidGroupWeight.groupIndex ? 1 : -1;
+                }
+
+                return this.partyMemberIndex > thatPlayerRaidGroupWeight.partyMemberIndex ? 1 : -1;
+            }
         }
 
         public bool GetRaidGroupContainingPlayer(string player, out int out_raidIndex, out PlayerCharacter out_foundPlayerCharacter)
@@ -532,7 +799,7 @@ namespace RaidCompGenerator
 
             for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
             {
-                RaidGroup raidGroup = raidGroups[raidIndex];
+                RaidGroup raidGroup = raidGroups.At(raidIndex);
                 if (raidGroup.ContainsPlayer(player))
                 {
                     out_raidIndex = raidIndex;
@@ -544,18 +811,110 @@ namespace RaidCompGenerator
             return false;
         }
 
-        public bool AnyRaidHasRoomForClassSpec(PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, bool allowGenericRoleMatch)
+        private bool GetRaidGroupContainingAlternatePlayerCharacter(PlayerCharacter playerCharacter, out int out_raidIndex, out PlayerCharacter out_foundPlayerCharacter)
         {
-            foreach (RaidGroup raidGroup in raidGroups)
+            out_raidIndex = -1;
+            out_foundPlayerCharacter = null;
+
+            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
             {
-                float out_matchWeight;
-                int out_groupIndex, out_partyMemberIndex;
-                if (raidGroup.FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, allowGenericRoleMatch, out out_groupIndex, out out_partyMemberIndex, out out_matchWeight))
+                RaidGroup raidGroup = raidGroups.At(raidIndex);
+                for (int raidGroupIndex = 0; raidGroupIndex < raidGroup.characters.GetLength(0); raidGroupIndex++)
+                {
+                    for (int raidPartyMemberIndex = 0; raidPartyMemberIndex < raidGroup.characters.GetLength(1); raidPartyMemberIndex++)
+                    {
+                        if (raidGroup.characters[raidGroupIndex, raidPartyMemberIndex] != null)
+                        {
+                            PlayerCharacter raidPlayerCharacter = raidGroup.characters[raidGroupIndex, raidPartyMemberIndex];
+                            if (raidPlayerCharacter.player == playerCharacter.player && raidPlayerCharacter != playerCharacter)
+                            {
+                                out_raidIndex = raidIndex;
+                                out_foundPlayerCharacter = raidPlayerCharacter;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private bool GetRaidGroupContainingPlayerCharacter(PlayerCharacter playerCharacter, out int out_raidIndex)
+        {
+            out_raidIndex = -1;
+
+            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            {
+                RaidGroup raidGroup = raidGroups.At(raidIndex);
+                for (int raidGroupIndex = 0; raidGroupIndex < raidGroup.characters.GetLength(0); raidGroupIndex++)
+                {
+                    for (int raidPartyMemberIndex = 0; raidPartyMemberIndex < raidGroup.characters.GetLength(1); raidPartyMemberIndex++)
+                    {
+                        if (raidGroup.characters[raidGroupIndex, raidPartyMemberIndex] != null)
+                        {
+                            PlayerCharacter raidPlayerCharacter = raidGroup.characters[raidGroupIndex, raidPartyMemberIndex];
+                            if (raidPlayerCharacter == playerCharacter)
+                            {
+                                out_raidIndex = raidIndex;
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            return false;
+        }
+
+        public bool AnyRaidContainsCharacter(PlayerCharacter playerCharacter)
+        {
+            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            {
+                RaidGroup raidGroup = raidGroups.At(raidIndex);
+                if (raidGroup.ContainsPlayerCharacter(playerCharacter))
                 {
                     return true;
                 }
             }
             return false;
+        }
+
+        public bool AnyRaidHasRoomForClassSpec(PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, bool allowGenericRoleMatch, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights, out int out_raidIndex, out int out_groupIndex, out int out_partyMemberIndex)
+        {
+            out_raidIndex = -1;
+            out_groupIndex = -1;
+            out_partyMemberIndex = -1;
+
+            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            {
+                RaidGroup raidGroup = raidGroups.At(raidIndex);   
+                List<RaidPosition> emptyRaidPositions = raidGroup.FindEmptyPositionsForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, allowGenericRoleMatch);
+                if (emptyRaidPositions.Count > 0)
+                {
+                    out_raidIndex = raidIndex;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void AddPlayerRaidGroupWeight(PlayerCharacter playerCharacter, RaidGroup raidGroup, int raidIndex, int roleIndex, int gearTypeIndex, int specIndex, float matchWeight, int groupIndex, int partyMemberIndex, bool exactRoleMatch, List<PlayerRaidGroupWeight> playerCharacterRaidGroupWeights)
+        {
+            PlayerRaidGroupWeight playerRaidGroupWeight = new PlayerRaidGroupWeight();
+            playerRaidGroupWeight.raidIndex = raidIndex;
+            playerRaidGroupWeight.groupIndex = groupIndex;
+            playerRaidGroupWeight.partyMemberIndex = partyMemberIndex;
+            playerRaidGroupWeight.exactRoleMatch = exactRoleMatch;
+
+            float raidMatchWeight = playerCharacter.raid != raidIndex ? 1000 : 0;
+            float roleWeight = raidGroup.roleCounts[roleIndex] * 10;
+            float gearTypeWeight = raidGroup.gearTypeCounts[gearTypeIndex];
+            float classSpecWeight = raidGroup.classSpecCounts[specIndex] * 10000;
+            playerRaidGroupWeight.weight = raidMatchWeight + matchWeight + roleWeight + gearTypeWeight + classSpecWeight;
+
+            playerCharacterRaidGroupWeights.Add(playerRaidGroupWeight);
         }
 
         public void GeneratePlayerRaidGroupWeights(PlayerCharacter playerCharacter, int raidGroupCount, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights)
@@ -567,6 +926,7 @@ namespace RaidCompGenerator
             }
 
             int gearTypeIndex = Helper.GetGearTypeIndex(playerCharacter.classSpecKey);
+            int specIndex = Helper.GetSpecIndex(playerCharacter.classSpecKey);
 
             // First, calculate weights for each raid group and which ones are the best fit.
             List<PlayerRaidGroupWeight> playerCharacterRaidGroupWeights = new List<PlayerRaidGroupWeight>();
@@ -584,24 +944,45 @@ namespace RaidCompGenerator
                     continue;
                 }
 
-                RaidGroup raidGroup = raidGroups[raidIndex];
+                RaidGroup raidGroup = raidGroups.At(raidIndex);
 
                 PlayerRaidGroupWeight playerRaidGroupWeight = new PlayerRaidGroupWeight();
                 playerRaidGroupWeight.raidIndex = raidIndex;
 
-                float matchWeight = 10000;
-                playerRaidGroupWeight.exactRoleMatch = raidGroup.FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, false, out playerRaidGroupWeight.groupIndex, out playerRaidGroupWeight.partyMemberIndex, out matchWeight);
-                if (!playerRaidGroupWeight.exactRoleMatch)
+                if (raidIndex == playerCharacter.raid)
                 {
-                    raidGroup.FindEmptyPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, true, out playerRaidGroupWeight.groupIndex, out playerRaidGroupWeight.partyMemberIndex, out matchWeight);
+                    AddPlayerRaidGroupWeight(playerCharacter, raidGroup, raidIndex, roleIndex, gearTypeIndex, specIndex, 0, playerCharacter.raidPosition / 5, playerCharacter.raidPosition % 5, true, playerCharacterRaidGroupWeights);
+                    continue;
                 }
 
-                float raidMatchWeight = playerCharacter.raid != raidIndex ? 1000 : 0;
-                float roleWeight = raidGroup.roleCounts[roleIndex] * 10;
-                float gearTypeWeight = raidGroup.gearTypeCounts[gearTypeIndex];
-                playerRaidGroupWeight.weight = raidMatchWeight + matchWeight + roleWeight + gearTypeWeight;
-                playerCharacterRaidGroupWeights.Add(playerRaidGroupWeight);
+                // Try to find an exact role match.
+                List<RaidPosition> exactRoleMatchEmptyRaidPositions = raidGroup.FindEmptyPositionsForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, false);
+                foreach (RaidPosition raidPosition in exactRoleMatchEmptyRaidPositions)
+                {
+                    AddPlayerRaidGroupWeight(playerCharacter, raidGroup, raidIndex, roleIndex, gearTypeIndex, specIndex, raidPosition.weight, raidPosition.groupIndex, raidPosition.partyMemberIndex, true, playerCharacterRaidGroupWeights);
+                }
+
+                List<RaidPosition> exactRoleMatchFullRaidPositions = raidGroup.FindFullPositionsForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, false);
+                foreach (RaidPosition raidPosition in exactRoleMatchFullRaidPositions)
+                {
+                    AddPlayerRaidGroupWeight(playerCharacter, raidGroup, raidIndex, roleIndex, gearTypeIndex, specIndex, raidPosition.weight, raidPosition.groupIndex, raidPosition.partyMemberIndex, true, playerCharacterRaidGroupWeights);
+                }
+
+                List<RaidPosition> genericRoleMatchEmptyRaidPositions = raidGroup.FindEmptyPositionsForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, true);
+                foreach (RaidPosition raidPosition in genericRoleMatchEmptyRaidPositions)
+                {
+                    AddPlayerRaidGroupWeight(playerCharacter, raidGroup, raidIndex, roleIndex, gearTypeIndex, specIndex, raidPosition.weight, raidPosition.groupIndex, raidPosition.partyMemberIndex, false, playerCharacterRaidGroupWeights);
+                }
+
+                List<RaidPosition> genericRoleMatchFullRaidPositions = raidGroup.FindFullPositionsForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, true);
+                foreach (RaidPosition raidPosition in genericRoleMatchFullRaidPositions)
+                {
+                    AddPlayerRaidGroupWeight(playerCharacter, raidGroup, raidIndex, roleIndex, gearTypeIndex, specIndex, raidPosition.weight, raidPosition.groupIndex, raidPosition.partyMemberIndex, false, playerCharacterRaidGroupWeights);
+                }
             }
+
+            playerCharacterRaidGroupWeights.Sort();
+
             playersRaidGroupWeights.Add(playerCharacter, playerCharacterRaidGroupWeights);
         }
 
@@ -619,7 +1000,7 @@ namespace RaidCompGenerator
                 return false;
             }
 
-            float bestRaidGroupWeight = 10000;
+            List<PlayerRaidGroupWeight> suitableRaidGroupWeights = new List<PlayerRaidGroupWeight>();
             foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerCharacterRaidGroupWeights)
             {
                 if (!allowGenericRoleMatch && !playerRaidGroupWeight.exactRoleMatch)
@@ -627,99 +1008,32 @@ namespace RaidCompGenerator
                     continue;
                 }
 
-                if (raidGroups[playerRaidGroupWeight.raidIndex].ContainsPlayer(playerCharacter.player))
+                if (raidGroups.At(playerRaidGroupWeight.raidIndex).ContainsPlayer(playerCharacter.player))
                 {
                     continue;
                 }
 
-                if (playerRaidGroupWeight.weight < bestRaidGroupWeight)
-                {
-                    bestRaidGroupWeight = playerRaidGroupWeight.weight;
-                }
+                suitableRaidGroupWeights.Add(playerRaidGroupWeight);
             }
 
-            // Second, filter out the ones that don't fit as well.
-            List<PlayerRaidGroupWeight> suitableRaidGroups = new List<PlayerRaidGroupWeight>();
-            foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerCharacterRaidGroupWeights)
+            // Randomly pick from one of the suitable raid groups to assign this player.
+            while (suitableRaidGroupWeights.Count > 0 )
             {
-                if (!allowGenericRoleMatch && !playerRaidGroupWeight.exactRoleMatch)
+                int weightIndex = random.Next(suitableRaidGroupWeights.Count);
+                PlayerRaidGroupWeight playerRaidGroupWeight = suitableRaidGroupWeights[weightIndex];
+                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
                 {
-                    continue;
+                    raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
+                    return true;
                 }
-
-                if (raidGroups[playerRaidGroupWeight.raidIndex].ContainsPlayer(playerCharacter.player))
-                {
-                    continue;
-                }
-
-                if (playerRaidGroupWeight.weight == bestRaidGroupWeight)
-                {
-                    suitableRaidGroups.Add(playerRaidGroupWeight);
-                }
-            }
-
-            // Lastly, randomly pick from one of the suitable raid groups to assign this player.
-            if (suitableRaidGroups.Count > 0)
-            {
-                int weightIndex = random.Next(suitableRaidGroups.Count);
-                PlayerRaidGroupWeight playerRaidGroupWeight = suitableRaidGroups[weightIndex];
-                RaidGroup raidGroup = raidGroups[playerRaidGroupWeight.raidIndex];
-                raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
-
-                return true;
+                suitableRaidGroupWeights.Remove(playerRaidGroupWeight);
             }
 
             return false;
         }
 
-        private bool AttemptToRedistributeOtherPlayerCharacterOfSameClass(PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights)
-        {
-            List<PlayerRaidGroupWeight> playerRaidGroupWeights;
-            if (!playersRaidGroupWeights.TryGetValue(playerCharacter, out playerRaidGroupWeights))
-            {
-                return false;
-            }
-
-            for (int raidGroupWeightIndex = 0; raidGroupWeightIndex < playerRaidGroupWeights.Count; raidGroupWeightIndex++)
-            {
-                PlayerRaidGroupWeight playerRaidGroupWeight = playerRaidGroupWeights[raidGroupWeightIndex];
-
-                // First, make sure this character isn't absent for this raid.
-                if (playerCharacter.absentRaids.Contains(playerRaidGroupWeight.raidIndex))
-                {
-                    continue;
-                }
-
-                // Second, make sure this player does not have yet another character already in this raid.
-                RaidGroup raidGroup = raidGroups[playerRaidGroupWeight.raidIndex];
-                if (raidGroup.ContainsPlayer(playerCharacter.player))
-                {
-                    continue;
-                }
-
-                // Check whether another character can be redistributed.
-                int groupIndex = 0, partyMemberIndex = 0;
-                if (raidGroup.FindFullPositionForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, false, out groupIndex, out partyMemberIndex))
-                {
-                    PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(groupIndex, partyMemberIndex);
-
-                    int ctr = 0, priorityThreshold = playerCharacter.priority + 1;
-                    if (existingPlayerCharacter.priority <= priorityThreshold && AttemptToRedistributePlayer(ctr, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights))
-                    {
-                        // Successfully moved someone else's character, assign this character.
-                        raidGroup.SetPlayerCharacter(groupIndex, partyMemberIndex, playerCharacter);
-                        playerRaidGroupWeight.groupIndex = groupIndex;
-                        playerRaidGroupWeight.partyMemberIndex = partyMemberIndex;
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        static readonly int MAX_RECURSIONS = 5;
-        private bool AttemptToRedistributePlayer(int ctr, PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights)
+        private bool AttemptToRedistributePlayerCharacter(int ctr, List<PlayerCharacter> in_playerCharacterStack, PlayerCharacter playerCharacter, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights, Random random)
         {
             if (ctr == MAX_RECURSIONS)
             {
@@ -731,83 +1045,427 @@ namespace RaidCompGenerator
             }
 
             // First, check whether this player already has a character in any raid.
-            int raidIndexContainingPlayer;
-            PlayerCharacter alternatePlayerCharacter;
-            if (!GetRaidGroupContainingPlayer(playerCharacter.player, out raidIndexContainingPlayer, out alternatePlayerCharacter))
+            int raidIndexContainingPlayerCharacter;
+            if (!GetRaidGroupContainingPlayerCharacter(playerCharacter, out raidIndexContainingPlayerCharacter))
             {
                 return false;
             }
 
             // Secondly, check whether this character successfully weighted any raids.
             List<PlayerRaidGroupWeight> playerRaidGroupWeights;
-            if (!playersRaidGroupWeights.TryGetValue(alternatePlayerCharacter, out playerRaidGroupWeights))
+            if (!playersRaidGroupWeights.TryGetValue(playerCharacter, out playerRaidGroupWeights))
             {
                 return false;
             }
+
+            int existingGroupIndex, existingPartyMemberIndex;
+            RaidGroup raidGroupContainingPlayer = raidGroups.At(raidIndexContainingPlayerCharacter);
+            raidGroupContainingPlayer.GetPlayerCharacterLocation(playerCharacter, out existingGroupIndex, out existingPartyMemberIndex);
+            bool playerIsInGenericRole = !desiredRaidComposition.IsExactRoleMatch(existingGroupIndex, existingPartyMemberIndex, playerCharacter.classSpecKey);
+
+            RaidGroupCollection tempRaidGroups = raidGroups.Clone();
 
             // Find any other raids that have a matching weight.
             List<PlayerRaidGroupWeight> validRaidGroupWeights = new List<PlayerRaidGroupWeight>();
             for (int raidGroupWeightIndex = 0; raidGroupWeightIndex < playerRaidGroupWeights.Count; raidGroupWeightIndex++)
             {
                 PlayerRaidGroupWeight playerRaidGroupWeight = playerRaidGroupWeights[raidGroupWeightIndex];
-                if (playerRaidGroupWeight.raidIndex != raidIndexContainingPlayer)
+                if (playerRaidGroupWeight.raidIndex != raidIndexContainingPlayerCharacter && !playerCharacter.absentRaids.Contains(playerRaidGroupWeight.raidIndex))
                 {
-                    // First, make sure this character isn't absent for this raid.
-                    if (alternatePlayerCharacter.absentRaids.Contains(playerRaidGroupWeight.raidIndex))
-                    {
-                        continue;
-                    }    
-
-                    // Second, make sure this player does not have yet another character already in this raid.
-                    RaidGroup raidGroup = raidGroups[playerRaidGroupWeight.raidIndex];
-                    if (raidGroup.ContainsPlayer(alternatePlayerCharacter.player))
-                    {
-                        continue;
-                    }
-
                     validRaidGroupWeights.Add(playerRaidGroupWeight);
                 }
             }
 
+            validRaidGroupWeights.Sort();
+
             for (int raidGroupWeightIndex = 0; raidGroupWeightIndex < validRaidGroupWeights.Count; raidGroupWeightIndex++)
             {
                 PlayerRaidGroupWeight playerRaidGroupWeight = validRaidGroupWeights[raidGroupWeightIndex];
-                RaidGroup raidGroup = raidGroups[playerRaidGroupWeight.raidIndex];
+                if (!playerRaidGroupWeight.exactRoleMatch)
+                {
+                    continue;
+                }
+
+                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                RaidGroup tempRaidGroup = new RaidGroup(raidGroup);
 
                 // Check whether there is room in this raid for this character.
-                float matchWeight = 100;
-                int groupIndex = 0, partyMemberIndex = 0;
-                if (raidGroup.FindEmptyPositionForClassSpec(alternatePlayerCharacter.classSpecKey, desiredRaidComposition, false, out groupIndex, out partyMemberIndex, out matchWeight))
-                {
-                    raidGroups[raidIndexContainingPlayer].RemovePlayerCharacter(alternatePlayerCharacter);
+                bool hasAvailablePosition = raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex);
 
-                    raidGroup.SetPlayerCharacter(groupIndex, partyMemberIndex, alternatePlayerCharacter);
-                    playerRaidGroupWeight.groupIndex = groupIndex;
-                    playerRaidGroupWeight.partyMemberIndex = partyMemberIndex;
-                    return true;
+                // Check whether this player does not have yet another character already in this raid.
+                if (raidGroup.ContainsPlayer(playerCharacter.player))
+                {
+                    if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
+                    {
+                        // If we do, try to move this player's alt to fit this character.
+                        PlayerCharacter alternatePlayerCharacter = raidGroup.GetCharacterForPlayer(playerCharacter.player);
+                        if (in_playerCharacterStack.Contains(alternatePlayerCharacter))
+                        {
+                            continue;
+                        }
+
+                        // Remove the character from their old raid group and try to move the alt.
+                        raidGroupContainingPlayer.RemovePlayerCharacter(playerCharacter);
+
+                        List<PlayerCharacter> playerCharacterStack = new List<PlayerCharacter>(in_playerCharacterStack);
+                        playerCharacterStack.Add(playerCharacter);
+
+                        if (AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                        {
+                            raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
+                            return true;
+                        }
+                        else
+                        {
+                            // Failed to move character, reset the raid group back to how it was.
+                            break;
+                        }
+                    }
+
+                    {
+                        List<PlayerCharacter> playerCharacterStack = new List<PlayerCharacter>(in_playerCharacterStack);
+                        playerCharacterStack.Add(playerCharacter);
+
+                        // Try to move the character in this position.
+                        PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex);
+                        if (existingPlayerCharacter.raid == playerRaidGroupWeight.raidIndex)
+                        {
+                            continue;
+                        }
+
+                        // Don't move a character if they're much higher priority than this one.
+                        bool existingPlayerIsInExactRoleMatch = desiredRaidComposition.IsExactRoleMatch(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, existingPlayerCharacter.classSpecKey);
+                        int priorityThreshold = existingPlayerIsInExactRoleMatch ? existingPlayerCharacter.priority + 2 : 10;
+                        if (playerCharacter.priority > priorityThreshold)
+                        {
+                            continue;
+                        }
+
+                        // Don't move the existing character if it's in an exact role match and the player we're looking to slot in isn't.
+                        if (playerIsInGenericRole && existingPlayerIsInExactRoleMatch)
+                        {
+                            continue;
+                        }
+
+                        // If his is the character we're trying to redistribute, don't try to redistribute.
+                        bool swappingInThisCharacter = in_playerCharacterStack.Count > 0 && in_playerCharacterStack.Last() == existingPlayerCharacter;
+
+                        // If this character already exists up the stack, don't continue further;
+                        if (!swappingInThisCharacter)
+                        {
+                            if (in_playerCharacterStack.Contains(existingPlayerCharacter))
+                            {
+                                continue;
+                            }
+
+                            if (AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                            {
+                                return true;
+                            }
+                        }
+
+                        PlayerCharacter alternatePlayerCharacter = raidGroup.GetCharacterForPlayer(playerCharacter.player);
+                        if (in_playerCharacterStack.Contains(alternatePlayerCharacter))
+                        {
+                            continue;
+                        }
+
+                        if (!AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                        {
+                            continue;
+                        }
+
+                        if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
+                        {
+                            raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
+                            return true;
+                        }
+                    }
                 }
+                else
+                {
+                    if (hasAvailablePosition)
+                    {
+                        // There is a space in this raid, remove this character from the old raid and add them to the new one.
+                        RaidGroup raidGroupContainingPlayerCharacter = raidGroups.At(raidIndexContainingPlayerCharacter);
+                        raidGroupContainingPlayerCharacter.RemovePlayerCharacter(playerCharacter);
+                        raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
+
+                        return true;
+                    }
+
+                    // Check whether any of the raid positions we found contain the player we're trying to swap in.
+                    PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex);
+                    if (existingPlayerCharacter.raid == playerRaidGroupWeight.raidIndex)
+                    {
+                        continue;
+                    }
+
+                    // Don't move a character if they're much higher priority than this one.
+                    bool existingPlayerIsInExactRoleMatch = desiredRaidComposition.IsExactRoleMatch(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, existingPlayerCharacter.classSpecKey);
+                    int priorityThreshold = existingPlayerIsInExactRoleMatch ? existingPlayerCharacter.priority + 2 : 10;
+                    if (playerCharacter.priority > priorityThreshold)
+                    {
+                        continue;
+                    }
+
+                    if (in_playerCharacterStack.Contains(existingPlayerCharacter))
+                    {
+                        PlayerCharacter stackPlayerCharacter = in_playerCharacterStack.Count > 0 ? in_playerCharacterStack.Last() : null;
+                        if (stackPlayerCharacter == existingPlayerCharacter && GetRaidGroupContainingPlayerCharacter(playerCharacter, out raidIndexContainingPlayerCharacter))
+                        {
+                            RaidGroup raidGroupContainingPlayerCharacter = raidGroups.At(raidIndexContainingPlayerCharacter);
+                            if (!raidGroupContainingPlayerCharacter.ContainsPlayer(existingPlayerCharacter.player) && !raidGroup.ContainsPlayer(playerCharacter.player))
+                            {
+                                raidGroupContainingPlayerCharacter.ReplacePlayerCharacter(playerCharacter, existingPlayerCharacter);
+                                raidGroup.ReplacePlayerCharacter(existingPlayerCharacter, playerCharacter);
+                                return true;
+                            }
+                        }
+                        else if(stackPlayerCharacter != existingPlayerCharacter)
+                        {
+                            continue;
+                        }
+                    }
+
+                    // Try to move the character in this position.
+                    List<PlayerCharacter> playerCharacterStack = new List<PlayerCharacter>(in_playerCharacterStack);
+                    playerCharacterStack.Add(playerCharacter);
+
+                    if (AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                    {
+                        return true;
+                    }
+                }
+
+                // We failed to do anything productive, set the raid group back to how it was.
+                raidGroup.Set(tempRaidGroup);
             }
 
-            // There's no room in any other raid for this player's character that has already been assigned, try to move another player's character.
-            for (int raidGroupWeightIndex = 0; raidGroupWeightIndex < validRaidGroupWeights.Count; raidGroupWeightIndex++)
-            {
-                PlayerRaidGroupWeight playerRaidGroupWeight = validRaidGroupWeights[raidGroupWeightIndex];
-                RaidGroup raidGroup = raidGroups[playerRaidGroupWeight.raidIndex];
+            // We failed to do anything productive, set the raid groups back to how they were.
+            raidGroups.Set(tempRaidGroups);
 
-                // Check whether there is room in this raid for this character.
-                int groupIndex = 0, partyMemberIndex = 0;
-                if (raidGroup.FindFullPositionForClassSpec(alternatePlayerCharacter.classSpecKey, desiredRaidComposition, false, out groupIndex, out partyMemberIndex))
+            return false;
+        }
+
+        private bool AttemptToRedistributeOtherPlayerCharacterOfSameClass(int ctr, List<PlayerCharacter> in_playerCharacterStack, PlayerCharacter playerCharacter, PlayerCharacter swappingPlayerCharacter, RaidComposition desiredRaidComposition, bool allowGenericRoleMatch, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights, Random random)
+        {
+            if (ctr == MAX_RECURSIONS)
+            {
+                return false;
+            }
+            else
+            {
+                ctr++;
+            }
+
+            List<PlayerRaidGroupWeight> playerRaidGroupWeights;
+            if (!playersRaidGroupWeights.TryGetValue(playerCharacter, out playerRaidGroupWeights))
+            {
+                return false;
+            }
+
+            RaidGroupCollection tempRaidGroups = raidGroups.Clone();
+
+            for (int raidGroupWeightIndex = 0; raidGroupWeightIndex < playerRaidGroupWeights.Count; raidGroupWeightIndex++)
+            {
+                PlayerRaidGroupWeight playerRaidGroupWeight = playerRaidGroupWeights[raidGroupWeightIndex];
+
+                // First, make sure this character isn't absent for this raid.
+                if (playerCharacter.absentRaids.Contains(playerRaidGroupWeight.raidIndex))
                 {
-                    PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(groupIndex, partyMemberIndex);
-                    if (AttemptToRedistributePlayer(ctr, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights))
+                    continue;
+                }
+
+                if (!allowGenericRoleMatch && !playerRaidGroupWeight.exactRoleMatch)
+                {
+                    continue;
+                }
+
+                // Second, make sure this player does not have yet another character already in this raid.
+                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                if (raidGroup.ContainsPlayer(playerCharacter.player))
+                {
+                    // Get the alternate character out.
+                    PlayerCharacter alternatePlayerCharacter = raidGroup.GetCharacterForPlayer(playerCharacter.player);
+                    if (in_playerCharacterStack.Contains(alternatePlayerCharacter))
                     {
-                        // Successfully moved someone else's character, assign this character.
-                        raidGroup.SetPlayerCharacter(groupIndex, partyMemberIndex, alternatePlayerCharacter);
-                        playerRaidGroupWeight.groupIndex = groupIndex;
-                        playerRaidGroupWeight.partyMemberIndex = partyMemberIndex;
+                        continue;
+                    }
+
+                    List<PlayerCharacter> playerCharacterStack = new List<PlayerCharacter>(in_playerCharacterStack);
+                    playerCharacterStack.Add(playerCharacter);
+
+                    // Try to redistribute the alt.
+                    if (!AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                    {
+                        continue;
+                    }
+                }
+
+                // Check whether another character can be redistributed.
+                //List<RaidPosition> fullRaidPositions = raidGroup.FindFullPositionsForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, allowGenericRoleMatch);
+                //foreach (RaidPosition raidPosition in fullRaidPositions)
+                {
+                    PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex);
+                    if (existingPlayerCharacter == null)
+                    {
+                        continue;
+                    }
+
+                    if (existingPlayerCharacter.raid == playerRaidGroupWeight.raidIndex)
+                    {
+                        continue;
+                    }
+
+                    if (in_playerCharacterStack.Contains(existingPlayerCharacter))
+                    {
+                        int raidIndexContainingStackCharacter;
+                        PlayerCharacter stackPlayerCharacter = in_playerCharacterStack.Count > 0 ? in_playerCharacterStack.Last() : null;
+                        if (stackPlayerCharacter == existingPlayerCharacter && GetRaidGroupContainingPlayerCharacter(stackPlayerCharacter, out raidIndexContainingStackCharacter))
+                        {
+                            RaidGroup raidGroupContainingStackCharacter = raidGroups.At(raidIndexContainingStackCharacter);
+                            if (!raidGroupContainingStackCharacter.ContainsPlayer(playerCharacter.player))
+                            {
+                                raidGroupContainingStackCharacter.ReplacePlayerCharacter(stackPlayerCharacter, existingPlayerCharacter);
+                                raidGroup.ReplacePlayerCharacter(existingPlayerCharacter, stackPlayerCharacter);
+                                return true;
+                            }
+                        }
+                        continue;
+                    }
+                    
+                    // Don't move a character if they're much higher priority than this one.
+                    bool existingPlayerIsInExactRoleMatch = desiredRaidComposition.IsExactRoleMatch(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, existingPlayerCharacter.classSpecKey);
+                    int priorityThreshold = existingPlayerIsInExactRoleMatch ? existingPlayerCharacter.priority + 2 : 10;
+                    if (playerCharacter.priority > priorityThreshold)
+                    {
+                        continue;
+                    }
+
+                    // Check whether we're trying to swap directly with the player we're trying to re-distribute for, but not the same character.
+                    bool swappingWithDesiredPlayer = swappingPlayerCharacter != null && swappingPlayerCharacter.player == existingPlayerCharacter.player && swappingPlayerCharacter.character != existingPlayerCharacter.character;
+                    if (swappingWithDesiredPlayer)
+                    {
+                        raidGroup.ReplacePlayerCharacter(existingPlayerCharacter, playerCharacter);
+                        return true;
+                    }
+
+                    List<PlayerCharacter> playerCharacterStack = new List<PlayerCharacter>(in_playerCharacterStack);
+                    playerCharacterStack.Add(playerCharacter);
+
+                    if (AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                    {
+                        if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
+                        {
+                            raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
+                            return true;
+                        }
                     }
                 }
             }
+
+            // We failed to do anything productive, set the raid groups back to how they were.
+            raidGroups.Set(tempRaidGroups);
+
+            return false;
+        }
+
+        private bool AttemptToDistributePlayerCharacterWithRoleMatch(bool allowGenericRoleMatch, PlayerCharacter playerCharacter, int raidGroupCount, RaidComposition desiredRaidComposition, Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights, Random random)
+        {
+            if (AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random))
+            {
+                return true;
+            }
+
+            int ctr = 0;
+            List<PlayerCharacter> playerCharacterStack = new List<PlayerCharacter>();
+
+            List<PlayerRaidGroupWeight> playerRaidGroupWeights;
+            if (!playersRaidGroupWeights.TryGetValue(playerCharacter, out playerRaidGroupWeights))
+            {
+                return false;
+            }
+
+            playerRaidGroupWeights.Sort();
+
+            RaidGroupCollection tempRaidGroups = raidGroups.Clone();
+
+            // Check whether any raid that we have an alternate character in has emtpy spots for this character specific role.
+            foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerRaidGroupWeights)
+            {
+                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
+                {
+                    // If we get here there is room for this character but an alternate is in that raid, try to move the alternate.
+                    PlayerCharacter alternatePlayerCharacter = raidGroup.GetCharacterForPlayer(playerCharacter.player);
+                    if (alternatePlayerCharacter != null && AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                    {
+                        raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
+                        return true;
+                    }
+                }
+            }
+
+            // We failed to do anything productive, set the raid groups back to how they were.
+            raidGroups.Set(tempRaidGroups);
+
+            // Now check whether any raid that we have an alternate character in has full spots that we could redistribute to fit this character.
+            foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerRaidGroupWeights)
+            {
+                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                if (!allowGenericRoleMatch && !playerRaidGroupWeight.exactRoleMatch)
+                {
+                    continue;
+                }
+
+                if (!raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
+                {
+                    // If we get here and there is an alt in the raid, try to move the alternate. If there was no alternate.
+                    PlayerCharacter alternatePlayerCharacter = raidGroup.GetCharacterForPlayer(playerCharacter.player);
+                    if (alternatePlayerCharacter != null && !AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                    {
+                        continue;
+                    }
+
+                    // Grab the player in this spot and try to redistribute them.
+                    PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex);
+                    bool existingPlayerIsInExactRoleMatch = desiredRaidComposition.IsExactRoleMatch(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, existingPlayerCharacter.classSpecKey);
+
+                    // Don't move a character if they're much higher priority than this one.
+                    int priorityThreshold = existingPlayerIsInExactRoleMatch ? existingPlayerCharacter.priority + 2 : 10;
+                    if (playerCharacter.priority > priorityThreshold)
+                    {
+                        continue;
+                    }
+
+                    if (existingPlayerCharacter.raid == playerRaidGroupWeight.raidIndex)
+                    {
+                        continue;
+                    }
+
+                    if (AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                    {
+                        // We succesfully moved the player in this position, try to assign this player.
+                        if (AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // We failed to do anything productive again, set the raid groups back to how they were.
+            raidGroups.Set(tempRaidGroups);
+
+            // We tried to move the alternate of this character but failed, try to move another character.
+            if (AttemptToRedistributeOtherPlayerCharacterOfSameClass(ctr, playerCharacterStack, playerCharacter, null, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random))
+            {
+                return true;
+            }
+
+            // We failed to do anything productive again, set the raid groups back to how they were.
+            raidGroups.Set(tempRaidGroups);
 
             return false;
         }
@@ -825,46 +1483,29 @@ namespace RaidCompGenerator
 
             playerCharacters.Sort();
 
-
             // Generate the raids.
             Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>> playersRaidGroupWeights = new Dictionary<PlayerCharacter, List<PlayerRaidGroupWeight>>();
             foreach (PlayerCharacter playerCharacter in playerCharacters)
             {
                 GeneratePlayerRaidGroupWeights(playerCharacter, raidGroupCount, desiredRaidComposition, playersRaidGroupWeights);
 
-                bool allowGenericRoleMatch = false;
-                bool successfulDistribution = AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random);
-                if (!successfulDistribution)
+                // Attempt to distribute this character in a specific role.
+                if (AttemptToDistributePlayerCharacterWithRoleMatch(false, playerCharacter, raidGroupCount, desiredRaidComposition, playersRaidGroupWeights, random))
                 {
-                    successfulDistribution = AttemptToRedistributeOtherPlayerCharacterOfSameClass(playerCharacter, desiredRaidComposition, playersRaidGroupWeights);
+                    continue;
                 }
 
-                if (!successfulDistribution)
-                {
-                    // If we failed to distribute this character, check whether there actually is an empty spot they can fill that we could potentially move another character into to make space for this one.
-                    int ctr = 0;
-                    if (AttemptToRedistributePlayer(ctr, playerCharacter, desiredRaidComposition, playersRaidGroupWeights))
-                    {
-                        // Try once more now that we succesfully moved one of this player's characters to a different raid group.
-                        successfulDistribution = AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random);
-                    }
-                }
+                // Attempt to distribute this character in a generic role.
+                AttemptToDistributePlayerCharacterWithRoleMatch(true, playerCharacter, raidGroupCount, desiredRaidComposition, playersRaidGroupWeights, random);
+            }
 
-                allowGenericRoleMatch = true;
-                
-                    // If we still haven't successfully found this character a position, try moving a their other characters via generic role (tank, healer, dps).
-                if (!successfulDistribution)
+            // Once we've done a first pass, try again with players who missed out now that raids may have been shifted around.
+            foreach (PlayerCharacter playerCharacter in playerCharacters)
+            {
+                if (!AnyRaidContainsCharacter(playerCharacter))
                 {
-                    successfulDistribution = AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random);
-                }
-
-                if (!successfulDistribution)
-                {
-                    int ctr = 0;
-                    if (AnyRaidHasRoomForClassSpec(playerCharacter, desiredRaidComposition, allowGenericRoleMatch) && AttemptToRedistributePlayer(ctr, playerCharacter, desiredRaidComposition, playersRaidGroupWeights))
-                    {
-                        AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random);
-                    }
+                    // Attempt to distribute this character in a generic role.
+                    AttemptToDistributePlayerCharacterWithRoleMatch(true, playerCharacter, raidGroupCount, desiredRaidComposition, playersRaidGroupWeights, random);
                 }
             }
         }
