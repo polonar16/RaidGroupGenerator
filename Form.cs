@@ -121,7 +121,9 @@ namespace RaidCompGenerator
             Worksheet worksheet = workbook.GetWorksheet("Output Values");
             CellCollection worksheetCells = worksheet.Cells;
 
-            //try
+#if !DEBUG
+            try
+#endif
             {
                 int rowIndex = 11, colIndex = 0;
                 int playerColIndex = colIndex;
@@ -175,10 +177,12 @@ namespace RaidCompGenerator
                     colIndex = playerColIndex;
                 }
             }
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.Message);
-            //}
+#if !DEBUG
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+#endif
         }
 
         private void WriteIniFile(string fileName)
@@ -191,10 +195,21 @@ namespace RaidCompGenerator
 
         private void LoadWorkbook(string fileName)
         {
-            Workbook workbook = Workbook.Load(fileName);
+#if !DEBUG
+            try
+#endif
+            {
+                Workbook workbook = Workbook.Load(fileName);
 
-            ImportDesiredRaidComposition(workbook);
-            ImportPlayerCharacters(workbook);
+                ImportDesiredRaidComposition(workbook);
+                ImportPlayerCharacters(workbook);
+            }
+#if !DEBUG
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+#endif
         }
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
@@ -294,7 +309,9 @@ namespace RaidCompGenerator
 
         private void ExecuteGenerate(bool generateRandomSeed)
         {
-            //try
+#if !DEBUG
+            try
+#endif
             {
                 if (generateRandomSeed)
                 {
@@ -326,10 +343,12 @@ namespace RaidCompGenerator
 
                 SetupRaidGroup();
             }
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.Message);
-            //}
+#if !DEBUG
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+#endif
         }
 
         private void buttonGenerate_Click(object sender, EventArgs e)

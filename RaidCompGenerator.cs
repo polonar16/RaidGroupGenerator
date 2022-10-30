@@ -1110,7 +1110,7 @@ namespace RaidCompGenerator
                         List<PlayerCharacter> playerCharacterStack = new List<PlayerCharacter>(in_playerCharacterStack);
                         playerCharacterStack.Add(playerCharacter);
 
-                        if (AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                        if (AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random) && !raidGroup.ContainsPlayer(playerCharacter.player))
                         {
                             raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
                             return true;
@@ -1356,7 +1356,7 @@ namespace RaidCompGenerator
 
                     if (AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, existingPlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
                     {
-                        if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
+                        if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex) && !raidGroup.ContainsPlayer(playerCharacter.player))
                         {
                             raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
                             return true;
@@ -1399,7 +1399,7 @@ namespace RaidCompGenerator
                 {
                     // If we get here there is room for this character but an alternate is in that raid, try to move the alternate.
                     PlayerCharacter alternatePlayerCharacter = raidGroup.GetCharacterForPlayer(playerCharacter.player);
-                    if (alternatePlayerCharacter != null && AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random))
+                    if (alternatePlayerCharacter != null && AttemptToRedistributePlayerCharacter(ctr, playerCharacterStack, alternatePlayerCharacter, desiredRaidComposition, playersRaidGroupWeights, random) && !raidGroup.ContainsPlayer(playerCharacter.player))
                     {
                         raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
                         return true;
