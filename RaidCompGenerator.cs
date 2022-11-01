@@ -307,11 +307,14 @@ namespace RaidCompGenerator
 
     public class RaidComposition
     {
+        public static int RAID_GROUP_COUNT = 5;
+        public static int PARTY_MEMBER_COUNT = 5;
+
         private string[,] raidPositions;
 
         public RaidComposition()
         {
-            raidPositions = new string[5, 5];
+            raidPositions = new string[RAID_GROUP_COUNT, PARTY_MEMBER_COUNT];
         }
 
         public void SetRaidPositionSpecialisation(int groupIndex, int partyMemberIndex, string specialisation)
