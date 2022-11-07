@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ExcelLibrary.SpreadSheet;
@@ -17,6 +18,7 @@ namespace RaidCompGenerator
     {
         RaidComposition desiredRaidComposition;
         RaidGroupGenerator raidGroupGenerator;
+        RaidGroupCollection raidGroupCollection;
 
         int randomSeed = 0;
 
@@ -28,6 +30,8 @@ namespace RaidCompGenerator
             raidGroupGenerator = new RaidGroupGenerator();
 
             textBoxRandomSeed.Text = randomSeed.ToString();
+
+            backgroundWorker.WorkerReportsProgress = true;
 
 #if !DEBUG
             buttonRegenerate.Enabled = false;
@@ -239,7 +243,7 @@ namespace RaidCompGenerator
             {
                 startRowIndex++;
 
-                RaidGroup raidGroup = raidGroupGenerator.raidGroups.At(raidGroupIndex);                
+                RaidGroup raidGroup = raidGroupGenerator.raidGroups.At(raidGroupIndex);
                 int rowIndex = startRowIndex, colIndex = startColIndex;
                 for (int groupIndex = 0; groupIndex < raidGroup.characters.GetLength(0); groupIndex++)
                 {
@@ -311,7 +315,12 @@ namespace RaidCompGenerator
 
         private void SetupRaidGroup()
         {
-            RaidGroup raidGroup = raidGroupGenerator.raidGroups.At(comboBoxRaidGroups.SelectedIndex);
+            if (raidGroupCollection == null)
+            {
+                return;
+            }
+
+            RaidGroup raidGroup = raidGroupCollection.At(comboBoxRaidGroups.SelectedIndex);
             for (int groupIndex = 0; groupIndex < raidGroup.characters.GetLength(0); groupIndex++)
             {
                 for (int partyMemberIndex = 0; partyMemberIndex < raidGroup.characters.GetLength(1); partyMemberIndex++)
@@ -348,25 +357,7 @@ namespace RaidCompGenerator
                     randomSeed = Convert.ToInt32(textBoxRandomSeed.Text);
                 }
 
-                raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, randomSeed);
-
-                int comboBoxPreviousIndex = comboBoxRaidGroups.SelectedIndex;
-                comboBoxRaidGroups.Items.Clear();
-                for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroups.Count; raidGroupIndex++)
-                {
-                    comboBoxRaidGroups.Items.Add(String.Format("Raid Group {0}", raidGroupIndex + 1));
-                }
-
-                if (comboBoxRaidGroups.Items.Count > 0 && comboBoxPreviousIndex == -1)
-                {
-                    comboBoxRaidGroups.SelectedIndex = 0;
-                }
-                else if (comboBoxPreviousIndex < comboBoxRaidGroups.Items.Count)
-                {
-                    comboBoxRaidGroups.SelectedIndex = comboBoxPreviousIndex;
-                }
-
-                SetupRaidGroup();
+                backgroundWorker.RunWorkerAsync();
             }
 #if !DEBUG
             catch (Exception ex)
@@ -388,6 +379,56 @@ namespace RaidCompGenerator
 
         private void comboBoxRaidGroups_SelectedValueChanged(object sender, EventArgs e)
         {
+            SetupRaidGroup();
+        }
+
+        private void backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            Random random = new Random(randomSeed);
+
+            List<RaidGroupCollection> raidGroupCollections = new List<RaidGroupCollection>();
+            for (int raidGroupCollectionIndex = 0; raidGroupCollectionIndex < 100; raidGroupCollectionIndex++)
+            {
+                RaidGroupCollection raidGroupCollection = raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, randomSeed + raidGroupCollectionIndex);
+                raidGroupCollection.ID = raidGroupCollectionIndex; ;
+
+                raidGroupCollections.Add(raidGroupCollection);
+
+                backgroundWorker.ReportProgress(raidGroupCollectionIndex);
+            }
+
+            raidGroupCollections.Sort();
+
+            raidGroupCollection = raidGroupCollections.First();
+        }
+
+        private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            progressBar.Value = (e.ProgressPercentage);
+        }
+
+        private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            progressBar.Value = 100;
+
+            progressBar.Enabled = false;
+
+            int comboBoxPreviousIndex = comboBoxRaidGroups.SelectedIndex;
+            comboBoxRaidGroups.Items.Clear();
+            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroups.Count; raidGroupIndex++)
+            {
+                comboBoxRaidGroups.Items.Add(String.Format("Raid Group {0}", raidGroupIndex + 1));
+            }
+
+            if (comboBoxRaidGroups.Items.Count > 0 && comboBoxPreviousIndex == -1)
+            {
+                comboBoxRaidGroups.SelectedIndex = 0;
+            }
+            else if (comboBoxPreviousIndex < comboBoxRaidGroups.Items.Count)
+            {
+                comboBoxRaidGroups.SelectedIndex = comboBoxPreviousIndex;
+            }
+
             SetupRaidGroup();
         }
     }

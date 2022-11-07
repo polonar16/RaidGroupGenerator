@@ -54,6 +54,8 @@
             this.buttonRegenerate = new System.Windows.Forms.Button();
             this.textBoxRandomSeed = new System.Windows.Forms.TextBox();
             this.labelRandomSeed = new System.Windows.Forms.Label();
+            this.progressBar = new System.Windows.Forms.ProgressBar();
+            this.backgroundWorker = new System.ComponentModel.BackgroundWorker();
             this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.raidCompDataGridView)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.raidDataGridView)).BeginInit();
@@ -309,11 +311,26 @@
             this.labelRandomSeed.TabIndex = 11;
             this.labelRandomSeed.Text = "Random Seed:";
             // 
+            // progressBar
+            // 
+            this.progressBar.Location = new System.Drawing.Point(542, 183);
+            this.progressBar.Name = "progressBar";
+            this.progressBar.Size = new System.Drawing.Size(100, 23);
+            this.progressBar.Step = 1;
+            this.progressBar.TabIndex = 12;
+            // 
+            // backgroundWorker
+            // 
+            this.backgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorker_DoWork);
+            this.backgroundWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorker_ProgressChanged);
+            this.backgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorker_RunWorkerCompleted);
+            // 
             // Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(726, 386);
+            this.Controls.Add(this.progressBar);
             this.Controls.Add(this.labelRandomSeed);
             this.Controls.Add(this.textBoxRandomSeed);
             this.Controls.Add(this.buttonRegenerate);
@@ -367,6 +384,8 @@
         private System.Windows.Forms.Button buttonRegenerate;
         private System.Windows.Forms.TextBox textBoxRandomSeed;
         private System.Windows.Forms.Label labelRandomSeed;
+        private System.Windows.Forms.ProgressBar progressBar;
+        private System.ComponentModel.BackgroundWorker backgroundWorker;
     }
 }
 

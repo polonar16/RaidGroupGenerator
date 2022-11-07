@@ -689,15 +689,65 @@ namespace RaidCompGenerator
         {
             return characters[groupIndex, partyMemberIndex] == null;
         }
+
+        public int GetAssignedCharacterCount()
+        {
+            int assignedPlayerCount = 0;
+            for (int raidGroupIndex = 0; raidGroupIndex < characters.GetLength(0); raidGroupIndex++)
+            {
+                for (int raidPartyMemberIndex = 0; raidPartyMemberIndex < characters.GetLength(1); raidPartyMemberIndex++)
+                {
+                    if (characters[raidGroupIndex, raidPartyMemberIndex] != null)
+                    {
+                        assignedPlayerCount++;
+                    }
+                }
+            }
+            return assignedPlayerCount;
+        }
     }
 
-    public class RaidGroupCollection
+    public class RaidGroupCollection : IComparable
     {
         List<RaidGroup> raidGroups = new List<RaidGroup>();
 
         public int Count
         {
             get {  return raidGroups.Count; }
+        }
+
+        public int ID
+        {
+            get;
+            set;
+        }
+
+        public int AssignedCharacterCount
+        {
+            get
+            {
+                int assignedCharacterCount = 0;
+                foreach (RaidGroup raidGroup in raidGroups)
+                {
+                    assignedCharacterCount += raidGroup.GetAssignedCharacterCount();
+                }
+                return assignedCharacterCount;
+            }
+        }
+
+        public int CompareTo(object that)
+        {
+            if (that == null)
+            {
+                return 1;
+            }
+
+            RaidGroupCollection thatRaidGroupCollection = that as RaidGroupCollection;
+            if (this.AssignedCharacterCount != thatRaidGroupCollection.AssignedCharacterCount)
+            {
+                return this.AssignedCharacterCount > thatRaidGroupCollection.AssignedCharacterCount ? -1 : 1;
+            }
+            return this.ID > thatRaidGroupCollection.ID ? 1 : -1;
         }
 
         public RaidGroup At(int index)
@@ -737,7 +787,7 @@ namespace RaidCompGenerator
     {
         static readonly int MAX_RECURSIONS = 6;
 
-        public RaidGroupCollection raidGroups = new RaidGroupCollection();
+        public RaidGroupCollection raidGroups;
         private List<PlayerCharacter> playerCharacters = new List<PlayerCharacter>();
 
         public void ClearPlayerCharacters()
@@ -1473,11 +1523,12 @@ namespace RaidCompGenerator
             return false;
         }
 
-        public void GenerateRaidGroups(int raidGroupCount, RaidComposition desiredRaidComposition, int randomSeed)
+        public RaidGroupCollection GenerateRaidGroups(int raidGroupCount, RaidComposition desiredRaidComposition, int randomSeed)
         {
+            raidGroups = new RaidGroupCollection();
+
             Random random = new Random(randomSeed);
 
-            raidGroups.Clear();
             for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)
             {
                 RaidGroup raidGroup = new RaidGroup();
@@ -1511,6 +1562,8 @@ namespace RaidCompGenerator
                     AttemptToDistributePlayerCharacterWithRoleMatch(true, playerCharacter, raidGroupCount, desiredRaidComposition, playersRaidGroupWeights, random);
                 }
             }
+
+            return raidGroups;
         }
     }
 }
