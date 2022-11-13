@@ -279,8 +279,8 @@ namespace RaidCompGenerator
         public string classSpecKey;
         public List<int> absentRaids = new List<int>();
         public int priority = 10;
-        public int raid = -1;
-        public int raidPosition = -1;
+        public int staticRaid = -1;
+        public int staticRaidPosition = -1;
         public int CompareTo(object that)
         {
             if (that == null)
@@ -289,9 +289,9 @@ namespace RaidCompGenerator
             }
 
             PlayerCharacter thatPlayerCharacter = that as PlayerCharacter;
-            if (raid != -1 || thatPlayerCharacter.raid != -1)
+            if (staticRaid != -1 || thatPlayerCharacter.staticRaid != -1)
             {
-                bool isGreaterPriority = raid > thatPlayerCharacter.raid;
+                bool isGreaterPriority = staticRaid > thatPlayerCharacter.staticRaid;
                 return isGreaterPriority ? -1 : 1;
             }
 
@@ -722,6 +722,12 @@ namespace RaidCompGenerator
             set;
         }
 
+        public int RandomSeed
+        {
+            get;
+            set;
+        }
+
         public int AssignedCharacterCount
         {
             get
@@ -787,7 +793,7 @@ namespace RaidCompGenerator
     {
         static readonly int MAX_RECURSIONS = 6;
 
-        public RaidGroupCollection raidGroups;
+        public RaidGroupCollection raidGroupCollection;
         private List<PlayerCharacter> playerCharacters = new List<PlayerCharacter>();
 
         public void ClearPlayerCharacters()
@@ -850,9 +856,9 @@ namespace RaidCompGenerator
             out_raidIndex = -1;
             out_foundPlayerCharacter = null;
 
-            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            for (int raidIndex = 0; raidIndex < raidGroupCollection.Count; raidIndex++)
             {
-                RaidGroup raidGroup = raidGroups.At(raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(raidIndex);
                 if (raidGroup.ContainsPlayer(player))
                 {
                     out_raidIndex = raidIndex;
@@ -869,9 +875,9 @@ namespace RaidCompGenerator
             out_raidIndex = -1;
             out_foundPlayerCharacter = null;
 
-            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            for (int raidIndex = 0; raidIndex < raidGroupCollection.Count; raidIndex++)
             {
-                RaidGroup raidGroup = raidGroups.At(raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(raidIndex);
                 for (int raidGroupIndex = 0; raidGroupIndex < raidGroup.characters.GetLength(0); raidGroupIndex++)
                 {
                     for (int raidPartyMemberIndex = 0; raidPartyMemberIndex < raidGroup.characters.GetLength(1); raidPartyMemberIndex++)
@@ -897,9 +903,9 @@ namespace RaidCompGenerator
         {
             out_raidIndex = -1;
 
-            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            for (int raidIndex = 0; raidIndex < raidGroupCollection.Count; raidIndex++)
             {
-                RaidGroup raidGroup = raidGroups.At(raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(raidIndex);
                 for (int raidGroupIndex = 0; raidGroupIndex < raidGroup.characters.GetLength(0); raidGroupIndex++)
                 {
                     for (int raidPartyMemberIndex = 0; raidPartyMemberIndex < raidGroup.characters.GetLength(1); raidPartyMemberIndex++)
@@ -923,9 +929,9 @@ namespace RaidCompGenerator
 
         public bool AnyRaidContainsCharacter(PlayerCharacter playerCharacter)
         {
-            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            for (int raidIndex = 0; raidIndex < raidGroupCollection.Count; raidIndex++)
             {
-                RaidGroup raidGroup = raidGroups.At(raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(raidIndex);
                 if (raidGroup.ContainsPlayerCharacter(playerCharacter))
                 {
                     return true;
@@ -940,9 +946,9 @@ namespace RaidCompGenerator
             out_groupIndex = -1;
             out_partyMemberIndex = -1;
 
-            for (int raidIndex = 0; raidIndex < raidGroups.Count; raidIndex++)
+            for (int raidIndex = 0; raidIndex < raidGroupCollection.Count; raidIndex++)
             {
-                RaidGroup raidGroup = raidGroups.At(raidIndex);   
+                RaidGroup raidGroup = raidGroupCollection.At(raidIndex);   
                 List<RaidPosition> emptyRaidPositions = raidGroup.FindEmptyPositionsForClassSpec(playerCharacter.classSpecKey, desiredRaidComposition, allowGenericRoleMatch);
                 if (emptyRaidPositions.Count > 0)
                 {
@@ -961,7 +967,7 @@ namespace RaidCompGenerator
             playerRaidGroupWeight.partyMemberIndex = partyMemberIndex;
             playerRaidGroupWeight.exactRoleMatch = exactRoleMatch;
 
-            float raidMatchWeight = playerCharacter.raid != raidIndex ? 1000 : 0;
+            float raidMatchWeight = playerCharacter.staticRaid != raidIndex ? 1000 : 0;
             float roleWeight = raidGroup.roleCounts[roleIndex] * 10;
             float gearTypeWeight = raidGroup.gearTypeCounts[gearTypeIndex];
             float classSpecWeight = raidGroup.classSpecCounts[specIndex] * 10000;
@@ -992,19 +998,21 @@ namespace RaidCompGenerator
                 }
 
                 // Check whether the character is fixed to this raid.
-                if (playerCharacter.raid >= 0 && raidIndex != playerCharacter.raid)
+                if (playerCharacter.staticRaid >= 0 && raidIndex != playerCharacter.staticRaid)
                 {
                     continue;
                 }
 
-                RaidGroup raidGroup = raidGroups.At(raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(raidIndex);
 
                 PlayerRaidGroupWeight playerRaidGroupWeight = new PlayerRaidGroupWeight();
                 playerRaidGroupWeight.raidIndex = raidIndex;
 
-                if (raidIndex == playerCharacter.raid)
+                if (raidIndex == playerCharacter.staticRaid)
                 {
-                    AddPlayerRaidGroupWeight(playerCharacter, raidGroup, raidIndex, roleIndex, gearTypeIndex, specIndex, 0, playerCharacter.raidPosition / 5, playerCharacter.raidPosition % 5, true, playerCharacterRaidGroupWeights);
+                    int staticRaidGroup = playerCharacter.staticRaidPosition / 5;
+                    int staticPartyMemberPosition = playerCharacter.staticRaidPosition % 5;
+                    AddPlayerRaidGroupWeight(playerCharacter, raidGroup, raidIndex, roleIndex, gearTypeIndex, specIndex, 0, staticRaidGroup, staticPartyMemberPosition, true, playerCharacterRaidGroupWeights);
                     continue;
                 }
 
@@ -1061,7 +1069,7 @@ namespace RaidCompGenerator
                     continue;
                 }
 
-                if (raidGroups.At(playerRaidGroupWeight.raidIndex).ContainsPlayer(playerCharacter.player))
+                if (raidGroupCollection.At(playerRaidGroupWeight.raidIndex).ContainsPlayer(playerCharacter.player))
                 {
                     continue;
                 }
@@ -1074,7 +1082,7 @@ namespace RaidCompGenerator
             {
                 int weightIndex = random.Next(suitableRaidGroupWeights.Count);
                 PlayerRaidGroupWeight playerRaidGroupWeight = suitableRaidGroupWeights[weightIndex];
-                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(playerRaidGroupWeight.raidIndex);
                 if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
                 {
                     raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
@@ -1112,11 +1120,11 @@ namespace RaidCompGenerator
             }
 
             int existingGroupIndex, existingPartyMemberIndex;
-            RaidGroup raidGroupContainingPlayer = raidGroups.At(raidIndexContainingPlayerCharacter);
+            RaidGroup raidGroupContainingPlayer = raidGroupCollection.At(raidIndexContainingPlayerCharacter);
             raidGroupContainingPlayer.GetPlayerCharacterLocation(playerCharacter, out existingGroupIndex, out existingPartyMemberIndex);
             bool playerIsInGenericRole = !desiredRaidComposition.IsExactRoleMatch(existingGroupIndex, existingPartyMemberIndex, playerCharacter.classSpecKey);
 
-            RaidGroupCollection tempRaidGroups = raidGroups.Clone();
+            RaidGroupCollection tempRaidGroups = raidGroupCollection.Clone();
 
             // Find any other raids that have a matching weight.
             List<PlayerRaidGroupWeight> validRaidGroupWeights = new List<PlayerRaidGroupWeight>();
@@ -1139,7 +1147,7 @@ namespace RaidCompGenerator
                     continue;
                 }
 
-                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(playerRaidGroupWeight.raidIndex);
                 RaidGroup tempRaidGroup = new RaidGroup(raidGroup);
 
                 // Check whether there is room in this raid for this character.
@@ -1181,7 +1189,7 @@ namespace RaidCompGenerator
 
                         // Try to move the character in this position.
                         PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex);
-                        if (existingPlayerCharacter.raid == playerRaidGroupWeight.raidIndex)
+                        if (existingPlayerCharacter.staticRaid == playerRaidGroupWeight.raidIndex)
                         {
                             continue;
                         }
@@ -1240,7 +1248,7 @@ namespace RaidCompGenerator
                     if (hasAvailablePosition)
                     {
                         // There is a space in this raid, remove this character from the old raid and add them to the new one.
-                        RaidGroup raidGroupContainingPlayerCharacter = raidGroups.At(raidIndexContainingPlayerCharacter);
+                        RaidGroup raidGroupContainingPlayerCharacter = raidGroupCollection.At(raidIndexContainingPlayerCharacter);
                         raidGroupContainingPlayerCharacter.RemovePlayerCharacter(playerCharacter);
                         raidGroup.SetPlayerCharacter(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, playerCharacter);
 
@@ -1249,7 +1257,7 @@ namespace RaidCompGenerator
 
                     // Check whether any of the raid positions we found contain the player we're trying to swap in.
                     PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex);
-                    if (existingPlayerCharacter.raid == playerRaidGroupWeight.raidIndex)
+                    if (existingPlayerCharacter.staticRaid == playerRaidGroupWeight.raidIndex)
                     {
                         continue;
                     }
@@ -1267,7 +1275,7 @@ namespace RaidCompGenerator
                         PlayerCharacter stackPlayerCharacter = in_playerCharacterStack.Count > 0 ? in_playerCharacterStack.Last() : null;
                         if (stackPlayerCharacter == existingPlayerCharacter && GetRaidGroupContainingPlayerCharacter(playerCharacter, out raidIndexContainingPlayerCharacter))
                         {
-                            RaidGroup raidGroupContainingPlayerCharacter = raidGroups.At(raidIndexContainingPlayerCharacter);
+                            RaidGroup raidGroupContainingPlayerCharacter = raidGroupCollection.At(raidIndexContainingPlayerCharacter);
                             if (!raidGroupContainingPlayerCharacter.ContainsPlayer(existingPlayerCharacter.player) && !raidGroup.ContainsPlayer(playerCharacter.player))
                             {
                                 raidGroupContainingPlayerCharacter.ReplacePlayerCharacter(playerCharacter, existingPlayerCharacter);
@@ -1296,7 +1304,7 @@ namespace RaidCompGenerator
             }
 
             // We failed to do anything productive, set the raid groups back to how they were.
-            raidGroups.Set(tempRaidGroups);
+            raidGroupCollection.Set(tempRaidGroups);
 
             return false;
         }
@@ -1318,7 +1326,7 @@ namespace RaidCompGenerator
                 return false;
             }
 
-            RaidGroupCollection tempRaidGroups = raidGroups.Clone();
+            RaidGroupCollection tempRaidGroupCollection = raidGroupCollection.Clone();
 
             for (int raidGroupWeightIndex = 0; raidGroupWeightIndex < playerRaidGroupWeights.Count; raidGroupWeightIndex++)
             {
@@ -1336,7 +1344,7 @@ namespace RaidCompGenerator
                 }
 
                 // Second, make sure this player does not have yet another character already in this raid.
-                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(playerRaidGroupWeight.raidIndex);
                 if (raidGroup.ContainsPlayer(playerCharacter.player))
                 {
                     // Get the alternate character out.
@@ -1366,7 +1374,7 @@ namespace RaidCompGenerator
                         continue;
                     }
 
-                    if (existingPlayerCharacter.raid == playerRaidGroupWeight.raidIndex)
+                    if (existingPlayerCharacter.staticRaid == playerRaidGroupWeight.raidIndex)
                     {
                         continue;
                     }
@@ -1377,7 +1385,7 @@ namespace RaidCompGenerator
                         PlayerCharacter stackPlayerCharacter = in_playerCharacterStack.Count > 0 ? in_playerCharacterStack.Last() : null;
                         if (stackPlayerCharacter == existingPlayerCharacter && GetRaidGroupContainingPlayerCharacter(stackPlayerCharacter, out raidIndexContainingStackCharacter))
                         {
-                            RaidGroup raidGroupContainingStackCharacter = raidGroups.At(raidIndexContainingStackCharacter);
+                            RaidGroup raidGroupContainingStackCharacter = raidGroupCollection.At(raidIndexContainingStackCharacter);
                             if (!raidGroupContainingStackCharacter.ContainsPlayer(playerCharacter.player))
                             {
                                 raidGroupContainingStackCharacter.ReplacePlayerCharacter(stackPlayerCharacter, existingPlayerCharacter);
@@ -1419,7 +1427,7 @@ namespace RaidCompGenerator
             }
 
             // We failed to do anything productive, set the raid groups back to how they were.
-            raidGroups.Set(tempRaidGroups);
+            raidGroupCollection.Set(tempRaidGroupCollection);
 
             return false;
         }
@@ -1442,12 +1450,12 @@ namespace RaidCompGenerator
 
             playerRaidGroupWeights.Sort();
 
-            RaidGroupCollection tempRaidGroups = raidGroups.Clone();
+            RaidGroupCollection tempRaidGroupCollection = raidGroupCollection.Clone();
 
             // Check whether any raid that we have an alternate character in has emtpy spots for this character specific role.
             foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerRaidGroupWeights)
             {
-                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(playerRaidGroupWeight.raidIndex);
                 if (raidGroup.PositionIsEmpty(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex))
                 {
                     // If we get here there is room for this character but an alternate is in that raid, try to move the alternate.
@@ -1461,12 +1469,12 @@ namespace RaidCompGenerator
             }
 
             // We failed to do anything productive, set the raid groups back to how they were.
-            raidGroups.Set(tempRaidGroups);
+            raidGroupCollection.Set(tempRaidGroupCollection);
 
             // Now check whether any raid that we have an alternate character in has full spots that we could redistribute to fit this character.
             foreach (PlayerRaidGroupWeight playerRaidGroupWeight in playerRaidGroupWeights)
             {
-                RaidGroup raidGroup = raidGroups.At(playerRaidGroupWeight.raidIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(playerRaidGroupWeight.raidIndex);
                 if (!allowGenericRoleMatch && !playerRaidGroupWeight.exactRoleMatch)
                 {
                     continue;
@@ -1483,6 +1491,19 @@ namespace RaidCompGenerator
 
                     // Grab the player in this spot and try to redistribute them.
                     PlayerCharacter existingPlayerCharacter = raidGroup.GetPlayerCharacterAt(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex);
+                    if (existingPlayerCharacter == null)
+                    {
+                        // We succesfully moved the player in this position, try to assign this player.
+                        if (AttemptToDistributePlayerCharacter(playerCharacter, raidGroupCount, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
                     bool existingPlayerIsInExactRoleMatch = desiredRaidComposition.IsExactRoleMatch(playerRaidGroupWeight.groupIndex, playerRaidGroupWeight.partyMemberIndex, existingPlayerCharacter.classSpecKey);
 
                     // Don't move a character if they're much higher priority than this one.
@@ -1492,7 +1513,7 @@ namespace RaidCompGenerator
                         continue;
                     }
 
-                    if (existingPlayerCharacter.raid == playerRaidGroupWeight.raidIndex)
+                    if (existingPlayerCharacter.staticRaid == playerRaidGroupWeight.raidIndex)
                     {
                         continue;
                     }
@@ -1509,7 +1530,7 @@ namespace RaidCompGenerator
             }
 
             // We failed to do anything productive again, set the raid groups back to how they were.
-            raidGroups.Set(tempRaidGroups);
+            raidGroupCollection.Set(tempRaidGroupCollection);
 
             // We tried to move the alternate of this character but failed, try to move another character.
             if (AttemptToRedistributeOtherPlayerCharacterOfSameClass(ctr, playerCharacterStack, playerCharacter, null, desiredRaidComposition, allowGenericRoleMatch, playersRaidGroupWeights, random))
@@ -1518,21 +1539,22 @@ namespace RaidCompGenerator
             }
 
             // We failed to do anything productive again, set the raid groups back to how they were.
-            raidGroups.Set(tempRaidGroups);
+            raidGroupCollection.Set(tempRaidGroupCollection);
 
             return false;
         }
 
         public RaidGroupCollection GenerateRaidGroups(int raidGroupCount, RaidComposition desiredRaidComposition, int randomSeed)
         {
-            raidGroups = new RaidGroupCollection();
+            raidGroupCollection = new RaidGroupCollection();
+            raidGroupCollection.RandomSeed = randomSeed;
 
             Random random = new Random(randomSeed);
 
             for (int raidIndex = 0; raidIndex < raidGroupCount; raidIndex++)
             {
                 RaidGroup raidGroup = new RaidGroup();
-                raidGroups.Add(raidGroup);
+                raidGroupCollection.Add(raidGroup);
             }
 
             playerCharacters.Sort();
@@ -1563,7 +1585,7 @@ namespace RaidCompGenerator
                 }
             }
 
-            return raidGroups;
+            return raidGroupCollection;
         }
     }
 }

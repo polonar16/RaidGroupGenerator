@@ -21,6 +21,8 @@ namespace RaidCompGenerator
         RaidGroupCollection raidGroupCollection;
 
         int randomSeed = 0;
+        bool regenerating = false;
+        string filePath = "";
 
         public Form()
         {
@@ -39,21 +41,6 @@ namespace RaidCompGenerator
 #endif
         }
 
-        private void LoadDefaultWorkbook()
-        {
-            if (File.Exists("config.ini"))
-            {
-                using (StreamReader readtext = new StreamReader("config.ini"))
-                {
-                    string defaultWorkbook = readtext.ReadLine();
-                    if (File.Exists(defaultWorkbook))
-                    {
-                        LoadWorkbook(defaultWorkbook);
-                    }
-                }
-            }
-        }
-
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
             openFileDialog.Filter = "Microsoft XLS Files|*.xls";
@@ -62,7 +49,7 @@ namespace RaidCompGenerator
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            saveFileDialog.FileName = openFileDialog.FileName;
+            saveFileDialog.FileName = Path.GetFileNameWithoutExtension(filePath) + " Output";
             saveFileDialog.Filter = "Microsoft XLS Files|*.xls";
             saveFileDialog.ShowDialog();
         }
@@ -85,7 +72,7 @@ namespace RaidCompGenerator
             raidDataGridView.Rows.Add(blankRow);
             raidDataGridView.ClearSelection();
 
-            LoadDefaultWorkbook();
+            LoadConfig();
         }
 
         private void ImportDesiredRaidComposition(Workbook workbook)
@@ -162,7 +149,7 @@ namespace RaidCompGenerator
                         int raidIndex = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
                         if (raidIndex > 0)
                         {
-                            playerCharacter.raid = raidIndex - 1;
+                            playerCharacter.staticRaid = raidIndex - 1;
                         }
                     }
 
@@ -171,7 +158,7 @@ namespace RaidCompGenerator
                         int raidPositionIndex = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
                         if (raidPositionIndex > 0)
                         {
-                            playerCharacter.raidPosition = raidPositionIndex - 1;
+                            playerCharacter.staticRaidPosition = raidPositionIndex - 1;
                         }
                     }
 
@@ -189,11 +176,37 @@ namespace RaidCompGenerator
 #endif
         }
 
-        private void WriteIniFile(string fileName)
+        private void WriteConfig()
         {
             using (StreamWriter writetext = new StreamWriter("config.ini"))
             {
-                writetext.WriteLine(fileName);
+                writetext.WriteLine(filePath);
+                writetext.WriteLine(textBoxRandomSeed.Text);
+                writetext.WriteLine(textBoxIterations.Text);
+            }
+        }
+
+        private void LoadConfig()
+        {
+            if (File.Exists("config.ini"))
+            {
+                using (StreamReader readtext = new StreamReader("config.ini"))
+                {
+                    filePath = readtext.ReadLine();
+                    if (File.Exists(filePath))
+                    {
+                        LoadWorkbook(filePath);
+                        openFileDialog.FileName = Path.GetFileName(filePath);
+                    }
+
+                    if (readtext.EndOfStream)
+                    {
+                        return;
+                    }
+
+                    textBoxRandomSeed.Text = readtext.ReadLine();
+                    textBoxIterations.Text = readtext.ReadLine();
+                }
             }
         }
 
@@ -218,8 +231,9 @@ namespace RaidCompGenerator
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
-            LoadWorkbook(openFileDialog.FileName);
-            WriteIniFile(openFileDialog.FileName);
+            filePath = openFileDialog.FileName;
+            LoadWorkbook(filePath);
+            WriteConfig();
         }
 
         Cell CreateCell(Worksheet worksheet, int rowIndex, int columnIndex, string value)
@@ -239,11 +253,11 @@ namespace RaidCompGenerator
             cell = CreateCell(worksheet, 0, 1, String.Format("{0}", randomSeed));
 
             int startRowIndex = 2, startColIndex = 0;
-            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroups.Count; raidGroupIndex++)
+            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroupCollection.Count; raidGroupIndex++)
             {
                 startRowIndex++;
 
-                RaidGroup raidGroup = raidGroupGenerator.raidGroups.At(raidGroupIndex);
+                RaidGroup raidGroup = raidGroupGenerator.raidGroupCollection.At(raidGroupIndex);
                 int rowIndex = startRowIndex, colIndex = startColIndex;
                 for (int groupIndex = 0; groupIndex < raidGroup.characters.GetLength(0); groupIndex++)
                 {
@@ -313,7 +327,7 @@ namespace RaidCompGenerator
             workbook.Save(saveFileDialog.FileName);
         }
 
-        private void SetupRaidGroup()
+        private void DisplayRaidGroup()
         {
             if (raidGroupCollection == null)
             {
@@ -350,15 +364,20 @@ namespace RaidCompGenerator
                 if (generateRandomSeed)
                 {
                     randomSeed = Guid.NewGuid().GetHashCode();
-                    textBoxRandomSeed.Text = randomSeed.ToString();
+                    regenerating = false;
                 }
                 else
                 {
                     randomSeed = Convert.ToInt32(textBoxRandomSeed.Text);
+                    regenerating = true;
                 }
 
                 backgroundWorker.RunWorkerAsync();
+
+                buttonGenerate.Enabled = false;
+                buttonRegenerate.Enabled = false;
             }
+
 #if !DEBUG
             catch (Exception ex)
             {
@@ -379,7 +398,7 @@ namespace RaidCompGenerator
 
         private void comboBoxRaidGroups_SelectedValueChanged(object sender, EventArgs e)
         {
-            SetupRaidGroup();
+            DisplayRaidGroup();
         }
 
         private void backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -387,14 +406,17 @@ namespace RaidCompGenerator
             Random random = new Random(randomSeed);
 
             List<RaidGroupCollection> raidGroupCollections = new List<RaidGroupCollection>();
-            for (int raidGroupCollectionIndex = 0; raidGroupCollectionIndex < 100; raidGroupCollectionIndex++)
+
+            int iterations = regenerating ? 1 : int.Parse(textBoxIterations.Text);
+            for (int raidGroupCollectionIndex = 0; raidGroupCollectionIndex < iterations; raidGroupCollectionIndex++)
             {
                 RaidGroupCollection raidGroupCollection = raidGroupGenerator.GenerateRaidGroups(int.Parse(textBoxRaidGroupCount.Text), desiredRaidComposition, randomSeed + raidGroupCollectionIndex);
-                raidGroupCollection.ID = raidGroupCollectionIndex; ;
+                raidGroupCollection.ID = raidGroupCollectionIndex;
 
                 raidGroupCollections.Add(raidGroupCollection);
 
-                backgroundWorker.ReportProgress(raidGroupCollectionIndex);
+                int progress = (int)((float)raidGroupCollectionIndex / (float)iterations * 100);
+                backgroundWorker.ReportProgress(progress);
             }
 
             raidGroupCollections.Sort();
@@ -410,12 +432,15 @@ namespace RaidCompGenerator
         private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             progressBar.Value = 100;
+            textBoxRandomSeed.Text = raidGroupCollection.RandomSeed.ToString();
 
             progressBar.Enabled = false;
+            buttonGenerate.Enabled = true;
+            buttonRegenerate.Enabled = true;
 
             int comboBoxPreviousIndex = comboBoxRaidGroups.SelectedIndex;
             comboBoxRaidGroups.Items.Clear();
-            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroups.Count; raidGroupIndex++)
+            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroupCollection.Count; raidGroupIndex++)
             {
                 comboBoxRaidGroups.Items.Add(String.Format("Raid Group {0}", raidGroupIndex + 1));
             }
@@ -429,7 +454,9 @@ namespace RaidCompGenerator
                 comboBoxRaidGroups.SelectedIndex = comboBoxPreviousIndex;
             }
 
-            SetupRaidGroup();
+            DisplayRaidGroup();
+
+            WriteConfig();
         }
     }
 }

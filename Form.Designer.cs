@@ -56,6 +56,8 @@
             this.labelRandomSeed = new System.Windows.Forms.Label();
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.backgroundWorker = new System.ComponentModel.BackgroundWorker();
+            this.labelIterations = new System.Windows.Forms.Label();
+            this.textBoxIterations = new System.Windows.Forms.TextBox();
             this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.raidCompDataGridView)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.raidDataGridView)).BeginInit();
@@ -262,7 +264,7 @@
             // 
             this.textBoxRaidGroupCount.Location = new System.Drawing.Point(84, 185);
             this.textBoxRaidGroupCount.Name = "textBoxRaidGroupCount";
-            this.textBoxRaidGroupCount.Size = new System.Drawing.Size(100, 20);
+            this.textBoxRaidGroupCount.Size = new System.Drawing.Size(49, 20);
             this.textBoxRaidGroupCount.TabIndex = 6;
             this.textBoxRaidGroupCount.Text = "3";
             // 
@@ -277,9 +279,9 @@
             // 
             // buttonGenerate
             // 
-            this.buttonGenerate.Location = new System.Drawing.Point(190, 183);
+            this.buttonGenerate.Location = new System.Drawing.Point(443, 184);
             this.buttonGenerate.Name = "buttonGenerate";
-            this.buttonGenerate.Size = new System.Drawing.Size(75, 23);
+            this.buttonGenerate.Size = new System.Drawing.Size(80, 22);
             this.buttonGenerate.TabIndex = 8;
             this.buttonGenerate.Text = "Generate";
             this.buttonGenerate.UseVisualStyleBackColor = true;
@@ -287,9 +289,9 @@
             // 
             // buttonRegenerate
             // 
-            this.buttonRegenerate.Location = new System.Drawing.Point(461, 183);
+            this.buttonRegenerate.Location = new System.Drawing.Point(443, 209);
             this.buttonRegenerate.Name = "buttonRegenerate";
-            this.buttonRegenerate.Size = new System.Drawing.Size(75, 23);
+            this.buttonRegenerate.Size = new System.Drawing.Size(80, 22);
             this.buttonRegenerate.TabIndex = 9;
             this.buttonRegenerate.Text = "Regenerate";
             this.buttonRegenerate.UseVisualStyleBackColor = true;
@@ -297,7 +299,7 @@
             // 
             // textBoxRandomSeed
             // 
-            this.textBoxRandomSeed.Location = new System.Drawing.Point(355, 185);
+            this.textBoxRandomSeed.Location = new System.Drawing.Point(337, 185);
             this.textBoxRandomSeed.Name = "textBoxRandomSeed";
             this.textBoxRandomSeed.Size = new System.Drawing.Size(100, 20);
             this.textBoxRandomSeed.TabIndex = 10;
@@ -305,7 +307,7 @@
             // labelRandomSeed
             // 
             this.labelRandomSeed.AutoSize = true;
-            this.labelRandomSeed.Location = new System.Drawing.Point(271, 188);
+            this.labelRandomSeed.Location = new System.Drawing.Point(253, 188);
             this.labelRandomSeed.Name = "labelRandomSeed";
             this.labelRandomSeed.Size = new System.Drawing.Size(78, 13);
             this.labelRandomSeed.TabIndex = 11;
@@ -313,9 +315,9 @@
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(542, 183);
+            this.progressBar.Location = new System.Drawing.Point(529, 185);
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(100, 23);
+            this.progressBar.Size = new System.Drawing.Size(185, 20);
             this.progressBar.Step = 1;
             this.progressBar.TabIndex = 12;
             // 
@@ -325,11 +327,30 @@
             this.backgroundWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorker_ProgressChanged);
             this.backgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorker_RunWorkerCompleted);
             // 
+            // labelIterations
+            // 
+            this.labelIterations.AutoSize = true;
+            this.labelIterations.Location = new System.Drawing.Point(139, 188);
+            this.labelIterations.Name = "labelIterations";
+            this.labelIterations.Size = new System.Drawing.Size(53, 13);
+            this.labelIterations.TabIndex = 14;
+            this.labelIterations.Text = "Iterations:";
+            // 
+            // textBoxIterations
+            // 
+            this.textBoxIterations.Location = new System.Drawing.Point(198, 185);
+            this.textBoxIterations.Name = "textBoxIterations";
+            this.textBoxIterations.Size = new System.Drawing.Size(49, 20);
+            this.textBoxIterations.TabIndex = 13;
+            this.textBoxIterations.Text = "100";
+            // 
             // Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(726, 386);
+            this.Controls.Add(this.labelIterations);
+            this.Controls.Add(this.textBoxIterations);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.labelRandomSeed);
             this.Controls.Add(this.textBoxRandomSeed);
@@ -386,6 +407,8 @@
         private System.Windows.Forms.Label labelRandomSeed;
         private System.Windows.Forms.ProgressBar progressBar;
         private System.ComponentModel.BackgroundWorker backgroundWorker;
+        private System.Windows.Forms.Label labelIterations;
+        private System.Windows.Forms.TextBox textBoxIterations;
     }
 }
 
