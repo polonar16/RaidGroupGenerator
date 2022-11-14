@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -23,6 +24,7 @@ namespace RaidCompGenerator
         int randomSeed = 0;
         bool regenerating = false;
         string filePath = "";
+        Process importURLProcess;
 
         public Form()
         {
@@ -33,7 +35,7 @@ namespace RaidCompGenerator
 
             textBoxRandomSeed.Text = randomSeed.ToString();
 
-            backgroundWorker.WorkerReportsProgress = true;
+            backgroundWorkerGenerate.WorkerReportsProgress = true;
 
 #if !DEBUG
             buttonRegenerate.Enabled = false;
@@ -183,6 +185,7 @@ namespace RaidCompGenerator
                 writetext.WriteLine(filePath);
                 writetext.WriteLine(textBoxRandomSeed.Text);
                 writetext.WriteLine(textBoxIterations.Text);
+                writetext.WriteLine(textBoxURL.Text);
             }
         }
 
@@ -206,6 +209,13 @@ namespace RaidCompGenerator
 
                     textBoxRandomSeed.Text = readtext.ReadLine();
                     textBoxIterations.Text = readtext.ReadLine();
+
+                    if (readtext.EndOfStream)
+                    {
+                        return;
+                    }
+
+                    textBoxURL.Text = readtext.ReadLine();
                 }
             }
         }
@@ -361,6 +371,8 @@ namespace RaidCompGenerator
             try
 #endif
             {
+                LockControls();
+
                 if (generateRandomSeed)
                 {
                     randomSeed = Guid.NewGuid().GetHashCode();
@@ -372,16 +384,68 @@ namespace RaidCompGenerator
                     regenerating = true;
                 }
 
-                backgroundWorker.RunWorkerAsync();
-
-                buttonGenerate.Enabled = false;
-                buttonRegenerate.Enabled = false;
+                backgroundWorkerGenerate.RunWorkerAsync();
             }
 
 #if !DEBUG
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
+            }
+#endif
+        }
+
+        private void LockControls()
+        {
+            textBoxIterations.Enabled = false;
+            textBoxRaidGroupCount.Enabled = false;
+            textBoxRandomSeed.Enabled = false;
+            textBoxURL.Enabled = false;
+
+            buttonImportURL.Enabled = false;
+            buttonGenerate.Enabled = false;
+            buttonRegenerate.Enabled = false;
+
+            comboBoxRaidGroups.Enabled = false;
+        }
+
+        private void UnlockControls()
+        {
+            textBoxIterations.Enabled = true;
+            textBoxRaidGroupCount.Enabled = true;
+            textBoxRandomSeed.Enabled = true;
+            textBoxURL.Enabled = true;
+
+            buttonImportURL.Enabled = true;
+            buttonGenerate.Enabled = true;
+            buttonRegenerate.Enabled = true;
+
+            comboBoxRaidGroups.Enabled = true;
+        }
+
+        private void buttonImportURL_Click(object sender, EventArgs e)
+        {
+#if !DEBUG
+            try
+#endif
+            {
+                LockControls();
+
+                ProcessStartInfo startInfo = new ProcessStartInfo("get_xls.exe");
+                filePath = Directory.GetCurrentDirectory() + "\\Raid Comp Generator.xls";
+                startInfo.Arguments = textBoxURL.Text + "/export?format=xlsx \"Raid Comp Generator.xls\"";
+                startInfo.UseShellExecute = false;
+                startInfo.CreateNoWindow = true;
+                importURLProcess = System.Diagnostics.Process.Start(startInfo);
+
+                backgroundWorkerImportURL.RunWorkerAsync();
+            }
+#if !DEBUG
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+
+                UnlockControls();
             }
 #endif
         }
@@ -401,7 +465,7 @@ namespace RaidCompGenerator
             DisplayRaidGroup();
         }
 
-        private void backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        private void backgroundWorkerGenerate_DoWork(object sender, DoWorkEventArgs e)
         {
             Random random = new Random(randomSeed);
 
@@ -416,7 +480,7 @@ namespace RaidCompGenerator
                 raidGroupCollections.Add(raidGroupCollection);
 
                 int progress = (int)((float)raidGroupCollectionIndex / (float)iterations * 100);
-                backgroundWorker.ReportProgress(progress);
+                backgroundWorkerGenerate.ReportProgress(progress);
             }
 
             raidGroupCollections.Sort();
@@ -424,19 +488,15 @@ namespace RaidCompGenerator
             raidGroupCollection = raidGroupCollections.First();
         }
 
-        private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        private void backgroundWorkerGenerate_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             progressBar.Value = (e.ProgressPercentage);
         }
 
-        private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private void backgroundWorkerGenerate_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             progressBar.Value = 100;
             textBoxRandomSeed.Text = raidGroupCollection.RandomSeed.ToString();
-
-            progressBar.Enabled = false;
-            buttonGenerate.Enabled = true;
-            buttonRegenerate.Enabled = true;
 
             int comboBoxPreviousIndex = comboBoxRaidGroups.SelectedIndex;
             comboBoxRaidGroups.Items.Clear();
@@ -457,6 +517,25 @@ namespace RaidCompGenerator
             DisplayRaidGroup();
 
             WriteConfig();
+
+            UnlockControls();
+        }
+
+        private void backgroundWorkerImportURL_DoWork(object sender, DoWorkEventArgs e)
+        {
+            importURLProcess.WaitForExit();
+
+            LoadWorkbook(filePath);
+        }
+
+        private void backgroundWorkerImportURL_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+
+        }
+
+        private void backgroundWorkerImportURL_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            UnlockControls();
         }
     }
 }

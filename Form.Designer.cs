@@ -55,9 +55,13 @@
             this.textBoxRandomSeed = new System.Windows.Forms.TextBox();
             this.labelRandomSeed = new System.Windows.Forms.Label();
             this.progressBar = new System.Windows.Forms.ProgressBar();
-            this.backgroundWorker = new System.ComponentModel.BackgroundWorker();
+            this.backgroundWorkerGenerate = new System.ComponentModel.BackgroundWorker();
             this.labelIterations = new System.Windows.Forms.Label();
             this.textBoxIterations = new System.Windows.Forms.TextBox();
+            this.textBoxURL = new System.Windows.Forms.TextBox();
+            this.labelURL = new System.Windows.Forms.Label();
+            this.buttonImportURL = new System.Windows.Forms.Button();
+            this.backgroundWorkerImportURL = new System.ComponentModel.BackgroundWorker();
             this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.raidCompDataGridView)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.raidDataGridView)).BeginInit();
@@ -120,7 +124,7 @@
             this.Group4,
             this.Group5});
             this.raidCompDataGridView.Enabled = false;
-            this.raidCompDataGridView.Location = new System.Drawing.Point(12, 40);
+            this.raidCompDataGridView.Location = new System.Drawing.Point(12, 69);
             this.raidCompDataGridView.MultiSelect = false;
             this.raidCompDataGridView.Name = "raidCompDataGridView";
             this.raidCompDataGridView.RowHeadersVisible = false;
@@ -177,7 +181,7 @@
             // labelRaidComp
             // 
             this.labelRaidComp.AutoSize = true;
-            this.labelRaidComp.Location = new System.Drawing.Point(9, 24);
+            this.labelRaidComp.Location = new System.Drawing.Point(9, 53);
             this.labelRaidComp.Name = "labelRaidComp";
             this.labelRaidComp.Size = new System.Drawing.Size(103, 13);
             this.labelRaidComp.TabIndex = 3;
@@ -197,7 +201,7 @@
             this.dataGridViewTextBoxColumn4,
             this.dataGridViewTextBoxColumn5});
             this.raidDataGridView.Enabled = false;
-            this.raidDataGridView.Location = new System.Drawing.Point(12, 238);
+            this.raidDataGridView.Location = new System.Drawing.Point(12, 267);
             this.raidDataGridView.MultiSelect = false;
             this.raidDataGridView.Name = "raidDataGridView";
             this.raidDataGridView.RowHeadersVisible = false;
@@ -254,7 +258,7 @@
             // comboBoxRaidGroups
             // 
             this.comboBoxRaidGroups.FormattingEnabled = true;
-            this.comboBoxRaidGroups.Location = new System.Drawing.Point(12, 211);
+            this.comboBoxRaidGroups.Location = new System.Drawing.Point(12, 240);
             this.comboBoxRaidGroups.Name = "comboBoxRaidGroups";
             this.comboBoxRaidGroups.Size = new System.Drawing.Size(121, 21);
             this.comboBoxRaidGroups.TabIndex = 5;
@@ -262,7 +266,7 @@
             // 
             // textBoxRaidGroupCount
             // 
-            this.textBoxRaidGroupCount.Location = new System.Drawing.Point(84, 185);
+            this.textBoxRaidGroupCount.Location = new System.Drawing.Point(84, 214);
             this.textBoxRaidGroupCount.Name = "textBoxRaidGroupCount";
             this.textBoxRaidGroupCount.Size = new System.Drawing.Size(49, 20);
             this.textBoxRaidGroupCount.TabIndex = 6;
@@ -271,7 +275,7 @@
             // labelRaidGroups
             // 
             this.labelRaidGroups.AutoSize = true;
-            this.labelRaidGroups.Location = new System.Drawing.Point(9, 188);
+            this.labelRaidGroups.Location = new System.Drawing.Point(9, 217);
             this.labelRaidGroups.Name = "labelRaidGroups";
             this.labelRaidGroups.Size = new System.Drawing.Size(69, 13);
             this.labelRaidGroups.TabIndex = 7;
@@ -279,7 +283,7 @@
             // 
             // buttonGenerate
             // 
-            this.buttonGenerate.Location = new System.Drawing.Point(443, 184);
+            this.buttonGenerate.Location = new System.Drawing.Point(443, 213);
             this.buttonGenerate.Name = "buttonGenerate";
             this.buttonGenerate.Size = new System.Drawing.Size(80, 22);
             this.buttonGenerate.TabIndex = 8;
@@ -289,7 +293,7 @@
             // 
             // buttonRegenerate
             // 
-            this.buttonRegenerate.Location = new System.Drawing.Point(443, 209);
+            this.buttonRegenerate.Location = new System.Drawing.Point(443, 238);
             this.buttonRegenerate.Name = "buttonRegenerate";
             this.buttonRegenerate.Size = new System.Drawing.Size(80, 22);
             this.buttonRegenerate.TabIndex = 9;
@@ -299,7 +303,7 @@
             // 
             // textBoxRandomSeed
             // 
-            this.textBoxRandomSeed.Location = new System.Drawing.Point(337, 185);
+            this.textBoxRandomSeed.Location = new System.Drawing.Point(337, 214);
             this.textBoxRandomSeed.Name = "textBoxRandomSeed";
             this.textBoxRandomSeed.Size = new System.Drawing.Size(100, 20);
             this.textBoxRandomSeed.TabIndex = 10;
@@ -307,7 +311,7 @@
             // labelRandomSeed
             // 
             this.labelRandomSeed.AutoSize = true;
-            this.labelRandomSeed.Location = new System.Drawing.Point(253, 188);
+            this.labelRandomSeed.Location = new System.Drawing.Point(253, 217);
             this.labelRandomSeed.Name = "labelRandomSeed";
             this.labelRandomSeed.Size = new System.Drawing.Size(78, 13);
             this.labelRandomSeed.TabIndex = 11;
@@ -315,22 +319,22 @@
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(529, 185);
+            this.progressBar.Location = new System.Drawing.Point(529, 214);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(185, 20);
             this.progressBar.Step = 1;
             this.progressBar.TabIndex = 12;
             // 
-            // backgroundWorker
+            // backgroundWorkerGenerate
             // 
-            this.backgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorker_DoWork);
-            this.backgroundWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorker_ProgressChanged);
-            this.backgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorker_RunWorkerCompleted);
+            this.backgroundWorkerGenerate.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorkerGenerate_DoWork);
+            this.backgroundWorkerGenerate.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorkerGenerate_ProgressChanged);
+            this.backgroundWorkerGenerate.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorkerGenerate_RunWorkerCompleted);
             // 
             // labelIterations
             // 
             this.labelIterations.AutoSize = true;
-            this.labelIterations.Location = new System.Drawing.Point(139, 188);
+            this.labelIterations.Location = new System.Drawing.Point(139, 217);
             this.labelIterations.Name = "labelIterations";
             this.labelIterations.Size = new System.Drawing.Size(53, 13);
             this.labelIterations.TabIndex = 14;
@@ -338,17 +342,52 @@
             // 
             // textBoxIterations
             // 
-            this.textBoxIterations.Location = new System.Drawing.Point(198, 185);
+            this.textBoxIterations.Location = new System.Drawing.Point(198, 214);
             this.textBoxIterations.Name = "textBoxIterations";
             this.textBoxIterations.Size = new System.Drawing.Size(49, 20);
             this.textBoxIterations.TabIndex = 13;
-            this.textBoxIterations.Text = "100";
+            this.textBoxIterations.Text = "500";
+            // 
+            // textBoxURL
+            // 
+            this.textBoxURL.Location = new System.Drawing.Point(47, 27);
+            this.textBoxURL.Name = "textBoxURL";
+            this.textBoxURL.Size = new System.Drawing.Size(582, 20);
+            this.textBoxURL.TabIndex = 15;
+            // 
+            // labelURL
+            // 
+            this.labelURL.AutoSize = true;
+            this.labelURL.Location = new System.Drawing.Point(9, 30);
+            this.labelURL.Name = "labelURL";
+            this.labelURL.Size = new System.Drawing.Size(32, 13);
+            this.labelURL.TabIndex = 16;
+            this.labelURL.Text = "URL:";
+            // 
+            // buttonImportURL
+            // 
+            this.buttonImportURL.Location = new System.Drawing.Point(635, 26);
+            this.buttonImportURL.Name = "buttonImportURL";
+            this.buttonImportURL.Size = new System.Drawing.Size(80, 22);
+            this.buttonImportURL.TabIndex = 17;
+            this.buttonImportURL.Text = "Import";
+            this.buttonImportURL.UseVisualStyleBackColor = true;
+            this.buttonImportURL.Click += new System.EventHandler(this.buttonImportURL_Click);
+            // 
+            // backgroundWorkerImportURL
+            // 
+            this.backgroundWorkerImportURL.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorkerImportURL_DoWork);
+            this.backgroundWorkerImportURL.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorkerImportURL_ProgressChanged);
+            this.backgroundWorkerImportURL.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorkerImportURL_RunWorkerCompleted);
             // 
             // Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(726, 386);
+            this.ClientSize = new System.Drawing.Size(726, 414);
+            this.Controls.Add(this.buttonImportURL);
+            this.Controls.Add(this.labelURL);
+            this.Controls.Add(this.textBoxURL);
             this.Controls.Add(this.labelIterations);
             this.Controls.Add(this.textBoxIterations);
             this.Controls.Add(this.progressBar);
@@ -406,9 +445,13 @@
         private System.Windows.Forms.TextBox textBoxRandomSeed;
         private System.Windows.Forms.Label labelRandomSeed;
         private System.Windows.Forms.ProgressBar progressBar;
-        private System.ComponentModel.BackgroundWorker backgroundWorker;
+        private System.ComponentModel.BackgroundWorker backgroundWorkerGenerate;
         private System.Windows.Forms.Label labelIterations;
         private System.Windows.Forms.TextBox textBoxIterations;
+        private System.Windows.Forms.TextBox textBoxURL;
+        private System.Windows.Forms.Label labelURL;
+        private System.Windows.Forms.Button buttonImportURL;
+        private System.ComponentModel.BackgroundWorker backgroundWorkerImportURL;
     }
 }
 
