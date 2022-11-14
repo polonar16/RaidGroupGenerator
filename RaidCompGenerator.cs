@@ -23,6 +23,15 @@ namespace RaidCompGenerator
             "Healer",
         };
 
+        public static readonly List<int> UniqueRoleScores = new List<int>
+        {
+            100000, // Tank
+            1000,   // PhysicalMelee
+            1000,   // PhysicalRanged
+            1000,   // Caster
+            25000,  // Healer
+        };
+
         public static readonly List<String> GearTypes = new List<String>
         {
             "Cloth",
@@ -705,6 +714,44 @@ namespace RaidCompGenerator
             }
             return assignedPlayerCount;
         }
+
+        public int GetClassSpecCount(string classSpecKey)
+        {
+            int classSpecCount = 0;
+            for (int raidGroupIndex = 0; raidGroupIndex < characters.GetLength(0); raidGroupIndex++)
+            {
+                for (int raidPartyMemberIndex = 0; raidPartyMemberIndex < characters.GetLength(1); raidPartyMemberIndex++)
+                {
+                    PlayerCharacter playerCharacter = characters[raidGroupIndex, raidPartyMemberIndex];
+                    if (characters[raidGroupIndex, raidPartyMemberIndex] != null && playerCharacter.classSpecKey == classSpecKey)
+                    {
+                        classSpecCount++;
+                    }
+                }
+            }
+            return classSpecCount;
+        }
+
+        public int ScoreUniqueness()
+        {
+            int score = 0;
+
+            for (int raidGroupIndex = 0; raidGroupIndex < characters.GetLength(0); raidGroupIndex++)
+            {
+                for (int raidPartyMemberIndex = 0; raidPartyMemberIndex < characters.GetLength(1); raidPartyMemberIndex++)
+                {
+                    PlayerCharacter playerCharacter = characters[raidGroupIndex, raidPartyMemberIndex];
+                    if (playerCharacter != null)
+                    {
+                        int classSpecCount = GetClassSpecCount(playerCharacter.classSpecKey);
+                        int roleIndex = Helper.GetRoleIndex(playerCharacter.classSpecKey);
+                        score += (classSpecCount - 1) * Helper.UniqueRoleScores[roleIndex];
+                    }
+                }
+            }
+
+            return score;
+        }
     }
 
     public class RaidGroupCollection : IComparable
@@ -726,6 +773,21 @@ namespace RaidCompGenerator
         {
             get;
             set;
+        }
+
+        public int UniquenessScore
+        {
+            get 
+            {
+                int score = 0;
+
+                for (int raidGroupIndex = 0; raidGroupIndex < raidGroups.Count; raidGroupIndex++)
+                {
+                    score += raidGroups[raidGroupIndex].ScoreUniqueness();
+                }
+
+                return score;
+            }
         }
 
         public int AssignedCharacterCount
@@ -753,6 +815,14 @@ namespace RaidCompGenerator
             {
                 return this.AssignedCharacterCount > thatRaidGroupCollection.AssignedCharacterCount ? -1 : 1;
             }
+
+            int thisUniquenessScore = this.UniquenessScore;
+            int thatUniquenessScore = thatRaidGroupCollection.UniquenessScore;
+            if (thisUniquenessScore != thatUniquenessScore)
+            {
+                return thisUniquenessScore < thatUniquenessScore ? -1 : 1;
+            }
+
             return this.ID > thatRaidGroupCollection.ID ? 1 : -1;
         }
 
