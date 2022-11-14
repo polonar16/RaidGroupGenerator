@@ -525,7 +525,10 @@ namespace RaidCompGenerator
         {
             importURLProcess.WaitForExit();
 
-            LoadWorkbook(filePath);
+            if (importURLProcess.ExitCode == 0)
+            {
+                LoadWorkbook(filePath);
+            }
         }
 
         private void backgroundWorkerImportURL_ProgressChanged(object sender, ProgressChangedEventArgs e)
