@@ -8,6 +8,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -263,11 +264,11 @@ namespace RaidCompGenerator
             cell = CreateCell(worksheet, 0, 1, String.Format("{0}", randomSeed));
 
             int startRowIndex = 2, startColIndex = 0;
-            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroupCollection.Count; raidGroupIndex++)
+            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupCollection.Count; raidGroupIndex++)
             {
                 startRowIndex++;
 
-                RaidGroup raidGroup = raidGroupGenerator.raidGroupCollection.At(raidGroupIndex);
+                RaidGroup raidGroup = raidGroupCollection.At(raidGroupIndex);
                 int rowIndex = startRowIndex, colIndex = startColIndex;
                 for (int groupIndex = 0; groupIndex < raidGroup.characters.GetLength(0); groupIndex++)
                 {
@@ -306,7 +307,7 @@ namespace RaidCompGenerator
                 for (int playerCharacterIndex = 0; playerCharacterIndex < raidGroupGenerator.GetPlayerCharacterCount(); playerCharacterIndex++)
                 {
                     PlayerCharacter playerCharacter = raidGroupGenerator.GetPlayerCharacterAt(playerCharacterIndex);
-                    if (!raidGroupGenerator.AnyRaidContainsCharacter(playerCharacter))
+                    if (!raidGroupCollection.AnyRaidContainsCharacter(playerCharacter))
                     {
                         cell = CreateCell(worksheet, rowIndex, colIndex++, playerCharacter.character);
                         cell = CreateCell(worksheet, rowIndex, colIndex++, playerCharacter.specialisation);
@@ -433,9 +434,13 @@ namespace RaidCompGenerator
 
                 ProcessStartInfo startInfo = new ProcessStartInfo("get_xls.exe");
                 filePath = Directory.GetCurrentDirectory() + "\\Raid Comp Generator.xls";
+
+                //Regex
+
                 startInfo.Arguments = textBoxURL.Text + "/export?format=xlsx \"Raid Comp Generator.xls\"";
                 startInfo.UseShellExecute = false;
                 startInfo.CreateNoWindow = true;
+                startInfo.RedirectStandardOutput = true;
                 importURLProcess = System.Diagnostics.Process.Start(startInfo);
 
                 backgroundWorkerImportURL.RunWorkerAsync();
@@ -500,7 +505,7 @@ namespace RaidCompGenerator
 
             int comboBoxPreviousIndex = comboBoxRaidGroups.SelectedIndex;
             comboBoxRaidGroups.Items.Clear();
-            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupGenerator.raidGroupCollection.Count; raidGroupIndex++)
+            for (int raidGroupIndex = 0; raidGroupIndex < raidGroupCollection.Count; raidGroupIndex++)
             {
                 comboBoxRaidGroups.Items.Add(String.Format("Raid Group {0}", raidGroupIndex + 1));
             }
@@ -524,11 +529,6 @@ namespace RaidCompGenerator
         private void backgroundWorkerImportURL_DoWork(object sender, DoWorkEventArgs e)
         {
             importURLProcess.WaitForExit();
-
-            if (importURLProcess.ExitCode == 0)
-            {
-                LoadWorkbook(filePath);
-            }
         }
 
         private void backgroundWorkerImportURL_ProgressChanged(object sender, ProgressChangedEventArgs e)
@@ -538,6 +538,15 @@ namespace RaidCompGenerator
 
         private void backgroundWorkerImportURL_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            if (importURLProcess.ExitCode == 0)
+            {
+                LoadWorkbook(filePath);
+            }
+            else
+            {
+                MessageBox.Show(String.Format("Failed to import {0}, ensure that the permissions for your spreadsheet are set to publically viewable and the URL does not end with '/', contain '/edit' or anything beyond that point.", textBoxURL.Text));
+            }
+
             UnlockControls();
         }
     }

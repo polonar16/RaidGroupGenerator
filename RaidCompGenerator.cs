@@ -857,13 +857,26 @@ namespace RaidCompGenerator
                 raidGroups[raidGroupIndex].Set(that.At(raidGroupIndex));
             }
         }
+
+        public bool AnyRaidContainsCharacter(PlayerCharacter playerCharacter)
+        {
+            for (int raidIndex = 0; raidIndex < Count; raidIndex++)
+            {
+                RaidGroup raidGroup = At(raidIndex);
+                if (raidGroup.ContainsPlayerCharacter(playerCharacter))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     public class RaidGroupGenerator
     {
         static readonly int MAX_RECURSIONS = 6;
 
-        public RaidGroupCollection raidGroupCollection;
+        private RaidGroupCollection raidGroupCollection;
         private List<PlayerCharacter> playerCharacters = new List<PlayerCharacter>();
 
         public void ClearPlayerCharacters()
@@ -994,19 +1007,6 @@ namespace RaidCompGenerator
 
             }
 
-            return false;
-        }
-
-        public bool AnyRaidContainsCharacter(PlayerCharacter playerCharacter)
-        {
-            for (int raidIndex = 0; raidIndex < raidGroupCollection.Count; raidIndex++)
-            {
-                RaidGroup raidGroup = raidGroupCollection.At(raidIndex);
-                if (raidGroup.ContainsPlayerCharacter(playerCharacter))
-                {
-                    return true;
-                }
-            }
             return false;
         }
 
@@ -1648,7 +1648,7 @@ namespace RaidCompGenerator
             // Once we've done a first pass, try again with players who missed out now that raids may have been shifted around.
             foreach (PlayerCharacter playerCharacter in playerCharacters)
             {
-                if (!AnyRaidContainsCharacter(playerCharacter))
+                if (!raidGroupCollection.AnyRaidContainsCharacter(playerCharacter))
                 {
                     // Attempt to distribute this character in a generic role.
                     AttemptToDistributePlayerCharacterWithRoleMatch(true, playerCharacter, raidGroupCount, desiredRaidComposition, playersRaidGroupWeights, random);
