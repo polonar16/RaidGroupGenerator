@@ -80,7 +80,7 @@ namespace RaidCompGenerator
 
         private void ImportDesiredRaidComposition(Workbook workbook)
         {
-            Worksheet worksheet = workbook.GetWorksheet("Output Values");
+            Worksheet worksheet = workbook.GetWorksheet("Output");
             CellCollection worksheetCells = worksheet.Cells;
 
             int partyMemberIndex = 0, groupIndex = 0;
@@ -112,7 +112,7 @@ namespace RaidCompGenerator
         {
             raidGroupGenerator.ClearPlayerCharacters();
 
-            Worksheet worksheet = workbook.GetWorksheet("Output Values");
+            Worksheet worksheet = workbook.GetWorksheet("Output");
             CellCollection worksheetCells = worksheet.Cells;
 
 #if !DEBUG
@@ -138,14 +138,6 @@ namespace RaidCompGenerator
                     playerCharacter.classSpecKey = String.Format("{0} {1}", playerCharacter.specialisation, playerCharacter.characterClass);
                     playerCharacter.priority = Convert.ToInt32(worksheetCells[rowIndex, colIndex++].Value);
 
-                    for (int absentRaidIndex = 0; absentRaidIndex < int.Parse(textBoxRaidGroupCount.Text); absentRaidIndex++)
-                    {
-                        bool absent = Convert.ToBoolean(worksheetCells[rowIndex, colIndex++].Value);
-                        if (absent)
-                        {
-                            playerCharacter.absentRaids.Add(absentRaidIndex);
-                        }
-                    }
 
                     if (!worksheetCells[rowIndex, colIndex].IsEmpty)
                     {
@@ -163,6 +155,17 @@ namespace RaidCompGenerator
                         {
                             playerCharacter.staticRaidPosition = raidPositionIndex - 1;
                         }
+                    }
+
+                    int absentRaidIndex = 0;
+                    while (!worksheetCells[rowIndex, colIndex].IsEmpty)
+                    {
+                        bool absent = Convert.ToBoolean(worksheetCells[rowIndex, colIndex++].Value);
+                        if (absent)
+                        {
+                            playerCharacter.absentRaids.Add(absentRaidIndex);
+                        }
+                        absentRaidIndex++;
                     }
 
                     raidGroupGenerator.AddPlayerCharacter(playerCharacter);
@@ -297,8 +300,6 @@ namespace RaidCompGenerator
                 cell = CreateCell(worksheet, rowIndex++, colIndex, "Characters who couild not be assigned:");
 
                 cell = CreateCell(worksheet, rowIndex, colIndex++, "Character");
-                cell = CreateCell(worksheet, rowIndex, colIndex++, "Spec");
-                cell = CreateCell(worksheet, rowIndex, colIndex++, "Prio");
                 cell = CreateCell(worksheet, rowIndex, colIndex++, "Absent raids");
 
                 colIndex = startColIndex;
@@ -309,9 +310,7 @@ namespace RaidCompGenerator
                     PlayerCharacter playerCharacter = raidGroupGenerator.GetPlayerCharacterAt(playerCharacterIndex);
                     if (!raidGroupCollection.AnyRaidContainsCharacter(playerCharacter))
                     {
-                        cell = CreateCell(worksheet, rowIndex, colIndex++, playerCharacter.character);
-                        cell = CreateCell(worksheet, rowIndex, colIndex++, playerCharacter.specialisation);
-                        cell = CreateCell(worksheet, rowIndex, colIndex++, playerCharacter.priority.ToString());
+                        cell = CreateCell(worksheet, rowIndex, colIndex++, String.Format("{0} ({1})", playerCharacter.character, playerCharacter.specialisation));
 
                         String absentRaidsString = "";
                         if (playerCharacter.absentRaids.Count != 0)
@@ -441,6 +440,7 @@ namespace RaidCompGenerator
                 startInfo.UseShellExecute = false;
                 startInfo.CreateNoWindow = true;
                 startInfo.RedirectStandardOutput = true;
+                startInfo.RedirectStandardError = true;
                 importURLProcess = System.Diagnostics.Process.Start(startInfo);
 
                 backgroundWorkerImportURL.RunWorkerAsync();
@@ -544,7 +544,7 @@ namespace RaidCompGenerator
             }
             else
             {
-                MessageBox.Show(String.Format("Failed to import {0}, ensure that the permissions for your spreadsheet are set to publically viewable and the URL does not end with '/', contain '/edit' or anything beyond that point.", textBoxURL.Text));
+                MessageBox.Show(String.Format("Failed to import {0}, ensure that the permissions for your spreadsheet are set to publically viewable and the URL does not end with '/', contain '/edit' or anything beyond that point.\n\nError Message:\n\n{1}", textBoxURL.Text, importURLProcess.StandardError.ReadToEnd()));
             }
 
             UnlockControls();
