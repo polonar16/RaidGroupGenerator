@@ -299,7 +299,7 @@ namespace RaidCompGenerator
             // Write out characters that couldn't be assigned to a raid:
             {
                 int rowIndex = startRowIndex + 2, colIndex = startColIndex;
-                cell = CreateCell(worksheet, rowIndex++, colIndex, "Characters who couild not be assigned:");
+                cell = CreateCell(worksheet, rowIndex++, colIndex, "Characters who could not be assigned:");
 
                 cell = CreateCell(worksheet, rowIndex, colIndex++, "Character");
                 cell = CreateCell(worksheet, rowIndex, colIndex++, "Absent raids");
@@ -310,7 +310,34 @@ namespace RaidCompGenerator
                 for (int playerCharacterIndex = 0; playerCharacterIndex < raidGroupGenerator.GetPlayerCharacterCount(); playerCharacterIndex++)
                 {
                     PlayerCharacter playerCharacter = raidGroupGenerator.GetPlayerCharacterAt(playerCharacterIndex);
-                    if (!raidGroupCollection.AnyRaidContainsCharacter(playerCharacter))
+                    if (!raidGroupCollection.AnyRaidContainsCharacter(playerCharacter) && playerCharacter.absentRaids.Count != raidGroupCollection.Count)
+                    {
+                        cell = CreateCell(worksheet, rowIndex, colIndex++, String.Format("{0} ({1})", playerCharacter.character, playerCharacter.specialisation));
+
+                        String absentRaidsString = "";
+                        if (playerCharacter.absentRaids.Count != 0)
+                        {
+                            for (int raidIndex = 0; raidIndex < playerCharacter.absentRaids.Count; raidIndex++)
+                            {
+                                absentRaidsString += raidIndex == 0 ? (playerCharacter.absentRaids[raidIndex] + 1).ToString() : String.Format(", {0}", playerCharacter.absentRaids[raidIndex] + 1);
+                            }
+                        }
+                        cell = CreateCell(worksheet, rowIndex, colIndex++, absentRaidsString);
+                        colIndex = startColIndex;
+                        rowIndex++;
+                    }
+                }
+
+                colIndex = startColIndex;
+                rowIndex++;
+
+                cell = CreateCell(worksheet, rowIndex++, colIndex, "Inactive Characters:");
+                colIndex = startColIndex;
+
+                for (int playerCharacterIndex = 0; playerCharacterIndex < raidGroupGenerator.GetPlayerCharacterCount(); playerCharacterIndex++)
+                {
+                    PlayerCharacter playerCharacter = raidGroupGenerator.GetPlayerCharacterAt(playerCharacterIndex);
+                    if (!raidGroupCollection.AnyRaidContainsCharacter(playerCharacter) && playerCharacter.absentRaids.Count == raidGroupCollection.Count)
                     {
                         cell = CreateCell(worksheet, rowIndex, colIndex++, String.Format("{0} ({1})", playerCharacter.character, playerCharacter.specialisation));
 
