@@ -21,6 +21,7 @@ namespace RaidCompGenerator
         RaidComposition desiredRaidComposition;
         RaidGroupGenerator raidGroupGenerator;
         RaidGroupCollection raidGroupCollection;
+        List<RaidGroupCollection> raidGroupCollections;
 
         int randomSeed = 0;
         bool regenerating = false;
@@ -33,6 +34,7 @@ namespace RaidCompGenerator
 
             desiredRaidComposition = new RaidComposition();
             raidGroupGenerator = new RaidGroupGenerator();
+            raidGroupCollections = new List<RaidGroupCollection>();
 
             textBoxRandomSeed.Text = randomSeed.ToString();
 
@@ -344,6 +346,13 @@ namespace RaidCompGenerator
                 return;
             }
 
+            textBoxRandomSeed.Text = raidGroupCollection.RandomSeed.ToString();
+
+            if (comboBoxRaidGroups.SelectedIndex < 0 || comboBoxRaidGroups.SelectedIndex > raidGroupCollection.Count)
+            {
+                comboBoxRaidGroups.SelectedIndex = 0;
+            }
+
             RaidGroup raidGroup = raidGroupCollection.At(comboBoxRaidGroups.SelectedIndex);
             for (int groupIndex = 0; groupIndex < raidGroup.characters.GetLength(0); groupIndex++)
             {
@@ -407,6 +416,7 @@ namespace RaidCompGenerator
             buttonRegenerate.Enabled = false;
 
             comboBoxRaidGroups.Enabled = false;
+            comboBoxRaidCollections.Enabled = false;
         }
 
         private void UnlockControls()
@@ -421,6 +431,7 @@ namespace RaidCompGenerator
             buttonRegenerate.Enabled = true;
 
             comboBoxRaidGroups.Enabled = true;
+            comboBoxRaidCollections.Enabled = true;
         }
 
         private void buttonImportURL_Click(object sender, EventArgs e)
@@ -470,11 +481,17 @@ namespace RaidCompGenerator
             DisplayRaidGroup();
         }
 
+        private void comboBoxRaidCollections_SelectedValueChanged(object sender, EventArgs e)
+        {
+            raidGroupCollection = raidGroupCollections.ElementAt(comboBoxRaidCollections.SelectedIndex);
+            DisplayRaidGroup();
+        }
+
         private void backgroundWorkerGenerate_DoWork(object sender, DoWorkEventArgs e)
         {
             Random random = new Random(randomSeed);
 
-            List<RaidGroupCollection> raidGroupCollections = new List<RaidGroupCollection>();
+            raidGroupCollections.Clear();
 
             int iterations = regenerating ? 1 : int.Parse(textBoxIterations.Text);
             for (int raidGroupCollectionIndex = 0; raidGroupCollectionIndex < iterations; raidGroupCollectionIndex++)
@@ -519,7 +536,13 @@ namespace RaidCompGenerator
                 comboBoxRaidGroups.SelectedIndex = comboBoxPreviousIndex;
             }
 
-            DisplayRaidGroup();
+            comboBoxRaidCollections.Items.Clear();
+            for (int raidGroupCollectionIndex = 0; raidGroupCollectionIndex < raidGroupCollections.Count; raidGroupCollectionIndex++)
+            {
+                RaidGroupCollection raidGroupCollection = raidGroupCollections[raidGroupCollectionIndex];
+                comboBoxRaidCollections.Items.Add(String.Format("{0} (score: {1}, players: {2})", raidGroupCollection.ID + 1, raidGroupCollection.ScoreUniqueness(), raidGroupCollection.AssignedCharacterCount));
+            }
+            comboBoxRaidCollections.SelectedIndex = 0;
 
             WriteConfig();
 

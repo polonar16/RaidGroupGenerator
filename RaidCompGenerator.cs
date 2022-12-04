@@ -25,11 +25,11 @@ namespace RaidCompGenerator
 
         public static readonly List<int> UniqueRoleScores = new List<int>
         {
-            100000, // Tank
-            1000,   // PhysicalMelee
-            1000,   // PhysicalRanged
-            1000,   // Caster
-            25000,  // Healer
+            1000, // Tank
+            10,   // PhysicalMelee
+            10,   // PhysicalRanged
+            10,   // Caster
+            200,  // Healer
         };
 
         public static readonly List<String> GearTypes = new List<String>
@@ -468,6 +468,8 @@ namespace RaidCompGenerator
             {
                 classSpecCounts[classSpecIndex] = that.classSpecCounts[classSpecIndex];
             }
+
+            desiredRaidComposition = that.desiredRaidComposition;
         }
 
         public bool ContainsPlayer(string player)
@@ -802,16 +804,16 @@ namespace RaidCompGenerator
                 int roleIndex = Helper.GetRoleIndex(specialisation);
                 int classSpecCount = classSpecCounts[specIndex];
                 int classSpecValue = classSpecCount == 0 ? 0 : (classSpecCount - 1);
-                int classSpecWeight = (int)Math.Pow(Helper.UniqueRoleScores[roleIndex], classSpecValue);
+                int classSpecWeight = classSpecValue == 0 ? 0 : Helper.UniqueRoleScores[roleIndex] * classSpecValue;
                 score += classSpecWeight;
 
                 int gearTypeIndex = Helper.GetGearTypeIndex(specialisation);
-                if (!gearTypeMap.Contains(gearTypeIndex))
+                if (classSpecCount > 0 && !gearTypeMap.Contains(gearTypeIndex))
                 {
                     int gearTypeCount = gearTypeCounts[gearTypeIndex];
                     int gearTypeThreshold = desiredRaidComposition.GetGearTypeCount(gearTypeIndex);
                     int gearTypeValue = gearTypeCount <= gearTypeThreshold ? 0 : (gearTypeCount - gearTypeThreshold);
-                    int gearTypeWeight = (int)Math.Pow(Helper.UniqueRoleScores[roleIndex], gearTypeValue);
+                    int gearTypeWeight = gearTypeValue == 0 ? 0 : (int)Math.Pow(Helper.UniqueRoleScores[roleIndex], gearTypeValue);
                     score += gearTypeWeight;
 
                     gearTypeMap.Add(gearTypeIndex);
@@ -856,21 +858,6 @@ namespace RaidCompGenerator
             set;
         }
 
-        public int UniquenessScore
-        {
-            get 
-            {
-                int score = 0;
-
-                for (int raidGroupIndex = 0; raidGroupIndex < raidGroups.Count; raidGroupIndex++)
-                {
-                    score += raidGroups[raidGroupIndex].ScoreUniqueness();
-                }
-
-                return score;
-            }
-        }
-
         public int AssignedCharacterCount
         {
             get
@@ -897,8 +884,8 @@ namespace RaidCompGenerator
                 return this.AssignedCharacterCount > thatRaidGroupCollection.AssignedCharacterCount ? -1 : 1;
             }
 
-            int thisUniquenessScore = this.UniquenessScore;
-            int thatUniquenessScore = thatRaidGroupCollection.UniquenessScore;
+            int thisUniquenessScore = this.ScoreUniqueness();
+            int thatUniquenessScore = thatRaidGroupCollection.ScoreUniqueness();
             if (thisUniquenessScore != thatUniquenessScore)
             {
                 return thisUniquenessScore < thatUniquenessScore ? -1 : 1;
@@ -934,6 +921,9 @@ namespace RaidCompGenerator
             {
                 raidGroups[raidGroupIndex].Set(that.At(raidGroupIndex));
             }
+            desiredRaidComposition = that.desiredRaidComposition;
+            RandomSeed = that.RandomSeed;
+            ID = that.ID;
         }
 
         public bool AnyRaidContainsCharacter(PlayerCharacter playerCharacter)
@@ -947,6 +937,18 @@ namespace RaidCompGenerator
                 }
             }
             return false;
+        }
+
+        public int ScoreUniqueness()
+        {
+            int score = 0;
+
+            for (int raidGroupIndex = 0; raidGroupIndex < raidGroups.Count; raidGroupIndex++)
+            {
+                score += raidGroups[raidGroupIndex].ScoreUniqueness();
+            }
+
+            return score;
         }
     }
 

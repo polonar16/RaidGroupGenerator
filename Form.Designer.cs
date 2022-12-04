@@ -62,6 +62,8 @@
             this.labelURL = new System.Windows.Forms.Label();
             this.buttonImportURL = new System.Windows.Forms.Button();
             this.backgroundWorkerImportURL = new System.ComponentModel.BackgroundWorker();
+            this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
+            this.comboBoxRaidCollections = new System.Windows.Forms.ComboBox();
             this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.raidCompDataGridView)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.raidDataGridView)).BeginInit();
@@ -257,6 +259,7 @@
             // 
             // comboBoxRaidGroups
             // 
+            this.comboBoxRaidGroups.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxRaidGroups.FormattingEnabled = true;
             this.comboBoxRaidGroups.Location = new System.Drawing.Point(12, 240);
             this.comboBoxRaidGroups.Name = "comboBoxRaidGroups";
@@ -293,7 +296,7 @@
             // 
             // buttonRegenerate
             // 
-            this.buttonRegenerate.Location = new System.Drawing.Point(443, 238);
+            this.buttonRegenerate.Location = new System.Drawing.Point(443, 240);
             this.buttonRegenerate.Name = "buttonRegenerate";
             this.buttonRegenerate.Size = new System.Drawing.Size(80, 22);
             this.buttonRegenerate.TabIndex = 9;
@@ -303,7 +306,7 @@
             // 
             // textBoxRandomSeed
             // 
-            this.textBoxRandomSeed.Location = new System.Drawing.Point(337, 214);
+            this.textBoxRandomSeed.Location = new System.Drawing.Point(223, 240);
             this.textBoxRandomSeed.Name = "textBoxRandomSeed";
             this.textBoxRandomSeed.Size = new System.Drawing.Size(100, 20);
             this.textBoxRandomSeed.TabIndex = 10;
@@ -311,7 +314,7 @@
             // labelRandomSeed
             // 
             this.labelRandomSeed.AutoSize = true;
-            this.labelRandomSeed.Location = new System.Drawing.Point(253, 217);
+            this.labelRandomSeed.Location = new System.Drawing.Point(139, 243);
             this.labelRandomSeed.Name = "labelRandomSeed";
             this.labelRandomSeed.Size = new System.Drawing.Size(78, 13);
             this.labelRandomSeed.TabIndex = 11;
@@ -342,9 +345,9 @@
             // 
             // textBoxIterations
             // 
-            this.textBoxIterations.Location = new System.Drawing.Point(198, 214);
+            this.textBoxIterations.Location = new System.Drawing.Point(223, 214);
             this.textBoxIterations.Name = "textBoxIterations";
-            this.textBoxIterations.Size = new System.Drawing.Size(49, 20);
+            this.textBoxIterations.Size = new System.Drawing.Size(100, 20);
             this.textBoxIterations.TabIndex = 13;
             this.textBoxIterations.Text = "500";
             // 
@@ -380,11 +383,22 @@
             this.backgroundWorkerImportURL.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorkerImportURL_ProgressChanged);
             this.backgroundWorkerImportURL.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorkerImportURL_RunWorkerCompleted);
             // 
+            // comboBoxRaidCollections
+            // 
+            this.comboBoxRaidCollections.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxRaidCollections.FormattingEnabled = true;
+            this.comboBoxRaidCollections.Location = new System.Drawing.Point(529, 240);
+            this.comboBoxRaidCollections.Name = "comboBoxRaidCollections";
+            this.comboBoxRaidCollections.Size = new System.Drawing.Size(185, 21);
+            this.comboBoxRaidCollections.TabIndex = 18;
+            this.comboBoxRaidCollections.SelectedValueChanged += new System.EventHandler(this.comboBoxRaidCollections_SelectedValueChanged);
+            // 
             // Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(726, 414);
+            this.Controls.Add(this.comboBoxRaidCollections);
             this.Controls.Add(this.buttonImportURL);
             this.Controls.Add(this.labelURL);
             this.Controls.Add(this.textBoxURL);
@@ -452,6 +466,8 @@
         private System.Windows.Forms.Label labelURL;
         private System.Windows.Forms.Button buttonImportURL;
         private System.ComponentModel.BackgroundWorker backgroundWorkerImportURL;
+        private System.ComponentModel.BackgroundWorker backgroundWorker1;
+        private System.Windows.Forms.ComboBox comboBoxRaidCollections;
     }
 }
 
