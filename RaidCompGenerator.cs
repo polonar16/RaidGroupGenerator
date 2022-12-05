@@ -23,15 +23,6 @@ namespace RaidCompGenerator
             "Healer",
         };
 
-        public static readonly List<int> UniqueRoleScores = new List<int>
-        {
-            1000, // Tank
-            10,   // PhysicalMelee
-            10,   // PhysicalRanged
-            10,   // Caster
-            200,  // Healer
-        };
-
         public static readonly List<String> GearTypes = new List<String>
         {
             "Cloth Caster",
@@ -129,6 +120,84 @@ namespace RaidCompGenerator
              Color.FromArgb ( 198, 155, 109 ), // Warrior
         };
 
+        public static readonly List<String> ClassSpecGroups = new List<String>
+        {
+            // Death Knight
+            "Blood Death Knight",
+            "Frost Death Knight",
+            "Unholy Death Knight",
+
+            // Druid
+            "Balance Druid",
+            "Feral Druid",
+            "Restoration Druid",
+
+            // Hunter
+            "Hunter",
+
+            // Mage
+            "Mage",
+
+            // Paladin
+            "Holy Paladin",
+            "Protection Paladin",
+            "Retribution Paladin",
+
+            // Priest
+            "Discipline Priest",
+            "Holy Priest",
+            "Shadow Priest",
+
+            // Rogue
+            "Rogue",
+
+            // Shaman
+            "Elemental Shaman",
+            "Enhancement Shaman",
+            "Restoration Shaman",
+
+            // Warlock
+            "Warlock",
+
+            // Warrior
+            "DPS Warrior",
+            "Protection Warrior"
+        };
+
+        public static readonly List<int> ClassSpecGroupScores = new List<int>
+        {
+            1000,   // Blood Death Knight
+            10,     // Frost Death Knight
+            10,     // Unholy Death Knight
+
+            10,     // Balance Druid
+            1000,   // Feral Druid
+            200,    // Restoration Druid
+
+            10,     // Hunter
+
+            10,     // Mage
+
+            200,    // Holy Paladin
+            1000,   // Protection Paladin
+            25,     // Retribution Paladin
+
+            200,    // Discipline Priest
+            200,    // Holy Priest
+            10,     // Shadow Priest
+
+            10,     // Rogue
+
+            25,     // Elemental Shaman
+            10,     // Enhancement Shaman
+            200,    // Restoration Shaman
+
+            10,     // Warlock
+
+            25,     // DPS Warrior
+            1000,   // "Protection Warrior
+        };
+
         public static int getIndexOfString(List<string> list, string value)
         {
             int index = list.IndexOf(value);
@@ -162,9 +231,9 @@ namespace RaidCompGenerator
             return Color.LightGray;
         }
 
-        public static int GetGearTypeIndex(string specialisation)
+        public static int GetGearTypeIndex(string classSpecKey)
         {
-            switch (specialisation)
+            switch (classSpecKey)
             {
                 case "Arcane Mage":
                 case "Fire Mage":
@@ -226,9 +295,9 @@ namespace RaidCompGenerator
 
             return -1;
         }
-        public static int GetRoleIndex(string specialisation)
+        public static int GetRoleIndex(string classSpecKey)
         {
-            switch (specialisation)
+            switch (classSpecKey)
             {
                 case "Protection Warrior":
                 case "Blood Death Knight":
@@ -276,6 +345,38 @@ namespace RaidCompGenerator
             }
 
             return -1;
+        }
+
+        public static int GetClassSpecGroupIndex(string classSpecKey)
+        {
+            switch (classSpecKey)
+            {
+                case "Beast Mastery Hunter":
+                case "Marksmanship Hunter":
+                case "Survival Hunter":
+                    return getIndexOfString(ClassSpecGroups, "Hunter");
+
+                case "Arcane Mage":
+                case "Fire Mage":
+                case "Frost Mage":
+                    return getIndexOfString(ClassSpecGroups, "Mage");
+
+                case "Assassination Rogue":
+                case "Combat Rogue":
+                case "Subtlety Rogue":
+                    return getIndexOfString(ClassSpecGroups, "Rogue");
+
+                case "Affliction Warlock":
+                case "Demonology Warlock":
+                case "Destruction Warlock":
+                    return getIndexOfString(ClassSpecGroups, "Warlock");
+
+                case "Arms Warrior":
+                case "Fury Warrior":
+                    return getIndexOfString(ClassSpecGroups, "DPS Warrior");
+            }
+
+            return getIndexOfString(ClassSpecGroups, classSpecKey);
         }
 
         internal static bool MatchClassSpecToRole(string desiredRole, string classSpecKey)
@@ -348,8 +449,6 @@ namespace RaidCompGenerator
 
         private string[,] raidPositions;
 
-        private List<int> gearTypeCounts = new List<int>();
-
         public RaidComposition()
         {
             raidPositions = new string[GROUP_COUNT, PARTY_MEMBER_COUNT];
@@ -358,24 +457,6 @@ namespace RaidCompGenerator
         public void SetRaidPositionSpecialisation(int groupIndex, int partyMemberIndex, string specialisation)
         {
             raidPositions[groupIndex, partyMemberIndex] = specialisation;
-
-            gearTypeCounts.Clear();
-
-            for (int gearTypeIndex = 0; gearTypeIndex < Helper.GearTypes.Count; gearTypeIndex++)
-            {
-                int gearTypeCount = 0;
-                for (int internalGroupIndex = 0; internalGroupIndex < GROUP_COUNT; internalGroupIndex++)
-                {
-                    for (int internalPartyMemberIndex = 0; internalPartyMemberIndex < PARTY_MEMBER_COUNT; internalPartyMemberIndex++)
-                    {
-                        if (raidPositions[internalGroupIndex, internalPartyMemberIndex] != null && Helper.GetGearTypeIndex(raidPositions[internalGroupIndex, internalPartyMemberIndex]) == gearTypeIndex)
-                        {
-                            gearTypeCount++;
-                        }
-                    }
-                }
-                gearTypeCounts.Add(gearTypeCount);
-            }
         }
 
         public string GetRaidPositionSpecialisation(int groupIndex, int partyMemberIndex)
@@ -397,11 +478,6 @@ namespace RaidCompGenerator
             }
 
             return false;
-        }
-
-        public int GetGearTypeCount(int gearTypeIndex)
-        {
-            return gearTypeCounts[gearTypeIndex];
         }
     }
 
@@ -793,34 +869,21 @@ namespace RaidCompGenerator
             return classSpecCount;
         }
 
-        public int ScoreUniqueness()
+        public int GetClassSpecGroupCount(int classSpecGroupIndex)
         {
-            int score = 0;
-
-            List<int> gearTypeMap = new List<int>();
-            foreach (String specialisation in Helper.Specialisations)
+            int classSpecCount = 0;
+            for (int raidGroupIndex = 0; raidGroupIndex < characters.GetLength(0); raidGroupIndex++)
             {
-                int specIndex = Helper.GetSpecIndex(specialisation);
-                int roleIndex = Helper.GetRoleIndex(specialisation);
-                int classSpecCount = classSpecCounts[specIndex];
-                int classSpecValue = classSpecCount == 0 ? 0 : (classSpecCount - 1);
-                int classSpecWeight = classSpecValue == 0 ? 0 : Helper.UniqueRoleScores[roleIndex] * classSpecValue;
-                score += classSpecWeight;
-
-                int gearTypeIndex = Helper.GetGearTypeIndex(specialisation);
-                if (classSpecCount > 0 && !gearTypeMap.Contains(gearTypeIndex))
+                for (int raidPartyMemberIndex = 0; raidPartyMemberIndex < characters.GetLength(1); raidPartyMemberIndex++)
                 {
-                    int gearTypeCount = gearTypeCounts[gearTypeIndex];
-                    int gearTypeThreshold = desiredRaidComposition.GetGearTypeCount(gearTypeIndex);
-                    int gearTypeValue = gearTypeCount <= gearTypeThreshold ? 0 : (gearTypeCount - gearTypeThreshold);
-                    int gearTypeWeight = gearTypeValue == 0 ? 0 : (int)Math.Pow(Helper.UniqueRoleScores[roleIndex], gearTypeValue);
-                    score += gearTypeWeight;
-
-                    gearTypeMap.Add(gearTypeIndex);
+                    PlayerCharacter playerCharacter = characters[raidGroupIndex, raidPartyMemberIndex];
+                    if (characters[raidGroupIndex, raidPartyMemberIndex] != null && Helper.GetClassSpecGroupIndex(playerCharacter.classSpecKey) == classSpecGroupIndex)
+                    {
+                        classSpecCount++;
+                    }
                 }
             }
-
-            return score;
+            return classSpecCount;
         }
     }
 
@@ -942,10 +1005,38 @@ namespace RaidCompGenerator
         public int ScoreUniqueness()
         {
             int score = 0;
+            
+            bool[] classSpecGroupMap = new bool[Helper.ClassSpecGroups.Count];
 
-            for (int raidGroupIndex = 0; raidGroupIndex < raidGroups.Count; raidGroupIndex++)
+            int tankRoleIndex = Helper.getIndexOfString(Helper.Roles, "Tank");
+            int healerRoleIndex = Helper.getIndexOfString(Helper.Roles, "Healer");
+
+            for (int classSpecIndex = 0; classSpecIndex < Helper.Specialisations.Count; classSpecIndex++)
             {
-                score += raidGroups[raidGroupIndex].ScoreUniqueness();
+                string classSpecKey = Helper.Specialisations[classSpecIndex];
+                int classSpecGroupIndex = Helper.GetClassSpecGroupIndex(classSpecKey);
+                if (!classSpecGroupMap[classSpecGroupIndex])
+                {
+                    int roleIndex = Helper.GetRoleIndex(classSpecKey);
+                    bool isTankOrHealer = roleIndex == tankRoleIndex || roleIndex == healerRoleIndex;
+
+                    int maxClassSpecCount = 0;
+                    for (int raidGroupIndex = 0; raidGroupIndex < raidGroups.Count; raidGroupIndex++)
+                    {
+                        RaidGroup raidGroup = raidGroups[raidGroupIndex];
+                        maxClassSpecCount = Math.Max(maxClassSpecCount, raidGroup.GetClassSpecGroupCount(classSpecGroupIndex));
+                    }
+
+                    for (int raidGroupIndex = 0; raidGroupIndex < raidGroups.Count; raidGroupIndex++)
+                    {
+                        RaidGroup raidGroup = raidGroups[raidGroupIndex];
+                        int classSpecGroupCount = raidGroup.GetClassSpecGroupCount(classSpecGroupIndex);
+                        int classSpecValue = maxClassSpecCount - classSpecGroupCount;
+                        int classSpecWeight = ((isTankOrHealer && maxClassSpecCount <= 1) || classSpecValue == 0) ? 0 : (int)Math.Pow(Helper.ClassSpecGroupScores[classSpecGroupIndex], classSpecValue);
+                        score += classSpecWeight;
+                    }
+                    classSpecGroupMap[classSpecGroupIndex] = true;
+                }
             }
 
             return score;
