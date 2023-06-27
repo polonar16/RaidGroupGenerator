@@ -171,7 +171,7 @@ namespace RaidCompGenerator
             10,     // Unholy Death Knight
 
             10,     // Balance Druid
-            1000,   // Feral Druid
+            10,     // Feral Druid
             200,    // Restoration Druid
 
             10,     // Hunter
@@ -302,7 +302,6 @@ namespace RaidCompGenerator
                 case "Protection Warrior":
                 case "Blood Death Knight":
                 case "Protection Paladin":
-                case "Feral Druid":
                     return getIndexOfString(Roles, "Tank");
 
                 case "Rogue":
@@ -316,6 +315,7 @@ namespace RaidCompGenerator
                 case "Warrior":
                 case "Arms Warrior":
                 case "Fury Warrior":
+                case "Feral Druid":
                     return getIndexOfString(Roles, "PhysicalMelee");
 
                 case "Beast Mastery Hunter":
